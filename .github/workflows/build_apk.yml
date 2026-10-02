@@ -38,7 +38,7 @@ jobs:
         run: flutter test
 
       - name: Generate Android scaffolding
-        run: flutter create . --platforms=android
+        run: flutter create . --platforms=android --project-name calcone
 
       - name: Build release APK
         run: flutter build apk --release
