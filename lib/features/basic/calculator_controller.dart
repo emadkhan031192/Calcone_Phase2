@@ -93,7 +93,6 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
       expression: '',
       resultPreview: '0',
       tape: _engine.tape,
-      clearError: true,
     );
   }
 

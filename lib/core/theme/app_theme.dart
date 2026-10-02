@@ -43,7 +43,7 @@ abstract final class AppTheme {
         ),
       ),
       dividerTheme: DividerThemeData(
-        color: scheme.outlineVariant.withValues(alpha: 0.4),
+        color: scheme.outlineVariant.withOpacity(0.4),
         thickness: 1,
         space: 1,
       ),
@@ -58,7 +58,7 @@ abstract final class AppTheme {
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: <TargetPlatform, PageTransitionsBuilder>{
-          TargetPlatform.android: FadeForwardsPageTransitionsBuilder(),
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
           TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
         },
       ),
@@ -93,7 +93,7 @@ abstract final class AppTheme {
       ),
       labelSmall: TextStyle(
         fontSize: 12,
-        color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+        color: scheme.onSurfaceVariant.withOpacity(0.8),
       ),
     );
   }

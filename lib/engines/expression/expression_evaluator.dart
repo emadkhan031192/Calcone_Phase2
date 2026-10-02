@@ -14,7 +14,7 @@ class ExpressionEvaluator {
     if (expression.trim().isEmpty) {
       throw CalculatorException.emptyInput;
     }
-    final Tokenizer tokenizer = const Tokenizer();
+    final Tokenizer tokenizer = Tokenizer();
     final List<Token> tokens = tokenizer.tokenize(expression);
     final Parser parser = Parser(tokens);
     return parser.parse().evaluate();

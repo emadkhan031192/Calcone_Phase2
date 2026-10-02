@@ -100,7 +100,10 @@ class CalculatorEngine {
     if (_expression.isEmpty) return;
     if (_justEvaluated) _startFresh();
     final String lastChar = _expression[_expression.length - 1];
-    if (_binaryOps.contains(lastChar) || lastChar == AppConstants.glyphPercent) return;
+    if (_binaryOps.contains(lastChar) ||
+        lastChar == AppConstants.glyphPercent) {
+      return;
+    }
     _expression += AppConstants.opPercent;
   }
 
