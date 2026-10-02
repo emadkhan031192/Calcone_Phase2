@@ -1,0 +1,48 @@
+name: calcone
+description: "CalcOne — Simple outside. Genius inside. An all-in-one smart calculator."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Precision arithmetic — avoids classic floating point issues
+  # (0.1 + 0.2 must display as 0.3, not 0.30000000000000004).
+  decimal: ^2.3.3
+  rational: ^2.2.3
+
+  # Formatting (thousands separators, locale-aware numbers).
+  intl: ^0.19.0
+
+  # Local persistence for session/history/saved numbers.
+  shared_preferences: ^2.2.3
+  sqflite: ^2.3.3
+  path: ^1.9.0
+
+  # State management — kept intentionally simple.
+  flutter_riverpod: ^2.5.1
+
+  # Sharing (Phase 3, scaffolded now so the dependency is in place).
+  share_plus: ^9.0.0
+
+  # Icons.
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    - assets/images/
+    - assets/formulas/
