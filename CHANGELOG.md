@@ -22,7 +22,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   precision continuation, smart paren, backspace-edit, and the preview
   helper.
 - Removed unused dependencies (`intl`, `path`, `cupertino_icons`,
-  `sqflite`); kept `share_plus`, `shared_preferences`, `cross_file`.
+  `sqflite`); kept `share_plus` and `shared_preferences`.
 - CI now fails on unformatted code (`dart format --set-exit-if-changed`)
   instead of silently reformatting; Android launcher label set to
   "Calcone"; app renamed to the user's "Calcone" spelling.

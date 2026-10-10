@@ -1,5 +1,4 @@
 import 'package:calcone/features/basic/basic_calculator_screen.dart';
-import 'package:calcone/features/basic/calculator_controller.dart';
 import 'package:calcone/features/basic/widgets/peek_handle.dart';
 import 'package:calcone/features/quick_scan/widgets/scan_tile.dart';
 import 'package:calcone/widgets/calc_button.dart';
