@@ -129,6 +129,7 @@ class Keypad extends ConsumerWidget {
               backgroundColor: equalsColor,
               foregroundColor: scheme.onPrimary,
               semanticLabel: 'Equals',
+              expanded: false,
               onTap: controller.evaluate,
               onLongPress: controller.repeatLastOperation,
             ),

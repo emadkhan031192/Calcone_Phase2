@@ -19,6 +19,12 @@ Future<void> tapKeys(WidgetTester tester, String keys) async {
 }
 
 Future<void> pumpApp(WidgetTester tester) async {
+  // A realistic phone screen: the default 800x600 test surface makes the
+  // home layout overflow, hiding the peek handle from taps.
+  tester.view.physicalSize = const Size(1080, 2400);
+  tester.view.devicePixelRatio = 3;
+  addTearDown(tester.view.resetPhysicalSize);
+  addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
     const ProviderScope(
       child: MaterialApp(home: BasicCalculatorScreen()),
