@@ -76,25 +76,30 @@ class _ShareSheetBodyState extends State<_ShareSheetBody> {
                 child: CircularProgressIndicator(),
               ),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
-                _action(
-                  context,
-                  icon: Icons.image_outlined,
-                  label: 'Image',
-                  onPressed: _busy ? null : () => _shareImage(context),
+                Expanded(
+                  child: _action(
+                    context,
+                    icon: Icons.image_outlined,
+                    label: 'Image',
+                    onPressed: _busy ? null : () => _shareImage(context),
+                  ),
                 ),
-                _action(
-                  context,
-                  icon: Icons.share_outlined,
-                  label: 'Text',
-                  onPressed: _busy ? null : () => _shareText(context),
+                Expanded(
+                  child: _action(
+                    context,
+                    icon: Icons.share_outlined,
+                    label: 'Text',
+                    onPressed: _busy ? null : () => _shareText(context),
+                  ),
                 ),
-                _action(
-                  context,
-                  icon: Icons.copy_outlined,
-                  label: 'Copy',
-                  onPressed: _busy ? null : () => _copyText(context),
+                Expanded(
+                  child: _action(
+                    context,
+                    icon: Icons.copy_outlined,
+                    label: 'Copy',
+                    onPressed: _busy ? null : () => _copyText(context),
+                  ),
                 ),
               ],
             ),
