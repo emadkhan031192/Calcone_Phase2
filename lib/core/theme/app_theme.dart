@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// CalcOne's visual language: calm, premium, mathematical.
+/// Calcone's visual language: calm, premium, mathematical.
 ///
 /// Deliberately restrained — one accent color, generous spacing, minimal
 /// borders/shadows, no gradients. See spec §28.

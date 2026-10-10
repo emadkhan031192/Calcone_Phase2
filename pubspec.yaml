@@ -24,6 +24,7 @@ dependencies:
 
   # Sharing (result cards, calculation/session text via the native sheet).
   share_plus: ^9.0.0
+  cross_file: ^9.0.0
 
 dev_dependencies:
   flutter_test:

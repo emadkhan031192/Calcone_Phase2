@@ -110,7 +110,12 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
               IconButton(
                 tooltip: 'Clear tape',
                 icon: const Icon(Icons.delete_sweep_outlined),
-                onPressed: tape.isEmpty ? null : controller.clearTape,
+                onPressed: tape.isEmpty
+                    ? null
+                    : () {
+                        setState(() => _selectedId = null);
+                        controller.clearTape();
+                      },
               ),
               IconButton(
                 tooltip: 'Close',

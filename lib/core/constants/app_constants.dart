@@ -4,7 +4,7 @@
 /// should still live here as a single source of truth for Phase 1; a real
 /// localization pipeline (ARB files) is a later-phase concern.
 abstract final class AppConstants {
-  static const String appName = 'CalcOne';
+  static const String appName = 'Calcone';
   static const String appTagline = 'Simple outside. Genius inside.';
 
   // Operator glyphs shown on the keypad (kept distinct from the ASCII
