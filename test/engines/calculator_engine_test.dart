@@ -268,4 +268,70 @@ void main() {
       expect(engine.previewResult(), isNull);
     });
   });
+
+  group('tape stores raw expressions for re-evaluation', () {
+    test('tape entry keeps ASCII operators, not display glyphs', () {
+      engine.inputDigit('5');
+      engine.inputOperator('*');
+      engine.inputDigit('2');
+      engine.evaluate();
+      expect(engine.tape.single.expression, '5*2');
+      expect(engine.tape.single.displayExpression, '5×2');
+    });
+
+    test('lastEvaluatedExpression tracks the evaluated input', () {
+      engine.inputDigit('2');
+      engine.inputOperator('+');
+      engine.inputDigit('2');
+      engine.evaluate();
+      expect(engine.lastEvaluatedExpression, '2+2');
+      expect(engine.justEvaluated, isTrue);
+      engine.inputDigit('9');
+      expect(engine.justEvaluated, isFalse);
+    });
+  });
+
+  group('session restore and tape surgery (undo support)', () {
+    test('restoreSession replaces tape and expression', () {
+      engine.inputDigit('1');
+      engine.evaluate();
+      final entries = List.of(engine.tape);
+      final other = CalculatorEngine();
+      other.restoreSession(entries, '5+');
+      expect(other.tape, hasLength(1));
+      expect(other.rawExpression, '5+');
+      expect(other.justEvaluated, isFalse);
+    });
+
+    test('insertTapeEntry restores a deleted entry at its index', () {
+      for (final v in ['1', '2', '3']) {
+        engine.inputDigit(v);
+        engine.evaluate();
+        engine.clearCurrent();
+      }
+      final removed = engine.tape[1];
+      engine.deleteTapeEntry(removed.id);
+      expect(engine.tape.map((e) => e.expression).toList(), ['1', '3']);
+      engine.insertTapeEntry(1, removed);
+      expect(engine.tape.map((e) => e.expression).toList(), ['1', '2', '3']);
+    });
+
+    test('clearTape empties the tape but keeps the expression', () {
+      engine.inputDigit('2');
+      engine.evaluate();
+      engine.inputDigit('9');
+      engine.clearTape();
+      expect(engine.tape, isEmpty);
+      expect(engine.rawExpression, '9');
+    });
+
+    test('restoreExpression replaces the in-progress expression', () {
+      engine.inputDigit('1');
+      engine.inputOperator('+');
+      engine.inputDigit('2');
+      engine.restoreExpression('9*9');
+      expect(engine.rawExpression, '9*9');
+      expect(engine.evaluate(), '81');
+    });
+  });
 }

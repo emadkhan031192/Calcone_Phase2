@@ -30,6 +30,10 @@ class CalculatorEngine {
   Rational? _lastResult;
   bool _justEvaluated = false;
 
+  /// Raw expression text that produced [_lastResult] (for Show Steps and
+  /// sharing, spec §25/§12). [_expression] may have moved on since.
+  String _lastEvaluatedExpression = '';
+
   /// For "long press equals repeats the previous operation" (spec §17):
   /// remembers the operator and the original operand *text* (e.g. "10%",
   /// not its evaluated value) that produced [_lastResult], so repeating
@@ -48,14 +52,22 @@ class CalculatorEngine {
 
   bool get hasResult => _lastResult != null;
 
-  /// The expression, rewritten with display glyphs (×, ÷, −) instead of the
-  /// internal ASCII operators, for showing above the result (spec §5).
-  String get displayExpression {
-    return _expression
+  bool get justEvaluated => _justEvaluated;
+
+  /// Raw expression text that produced the last result.
+  String get lastEvaluatedExpression => _lastEvaluatedExpression;
+
+  /// Rewrites raw expression text with display glyphs (×, ÷, −).
+  static String toDisplayString(String raw) {
+    return raw
         .replaceAll(AppConstants.opMultiply, AppConstants.glyphMultiply)
         .replaceAll(AppConstants.opDivide, AppConstants.glyphDivide)
         .replaceAll(AppConstants.opSubtract, AppConstants.glyphSubtract);
   }
+
+  /// The expression, rewritten with display glyphs (×, ÷, −) instead of the
+  /// internal ASCII operators, for showing above the result (spec §5).
+  String get displayExpression => toDisplayString(_expression);
 
   /// Appends a digit ('0'-'9').
   void inputDigit(String digit) {
@@ -165,6 +177,7 @@ class CalculatorEngine {
     _lastResult = null;
     _lastOperator = null;
     _lastOperandExpression = null;
+    _lastEvaluatedExpression = '';
   }
 
   /// Evaluates the current expression, appends it to the tape, and returns
@@ -178,10 +191,13 @@ class CalculatorEngine {
 
     final Rational result = _evaluator.evaluate(_expression);
     _rememberRepeatOperation();
+    _lastEvaluatedExpression = _expression;
 
     final CalculationEntry entry = CalculationEntry(
       id: (_nextId++).toString(),
-      expression: displayExpression,
+      // Stored raw (ASCII operators): the UI renders display glyphs, and
+      // edit-and-recalculate (Quick Scan) needs a re-parseable expression.
+      expression: _expression,
       result: result,
       timestamp: DateTime.now(),
     );
@@ -229,6 +245,47 @@ class CalculatorEngine {
 
   void deleteTapeEntry(String id) {
     _tape.removeWhere((CalculationEntry e) => e.id == id);
+  }
+
+  /// Inserts [entry] back at [index] (used by undo).
+  void insertTapeEntry(int index, CalculationEntry entry) {
+    _tape.insert(index.clamp(0, _tape.length), entry);
+    int maxId = _nextId - 1;
+    final int? parsed = int.tryParse(entry.id);
+    if (parsed != null && parsed >= _nextId) maxId = parsed;
+    _nextId = maxId + 1;
+  }
+
+  /// Clears the session tape without touching the in-progress expression.
+  void clearTape() {
+    _tape.clear();
+  }
+
+  /// Replaces the in-progress expression (used by undo).
+  void restoreExpression(String expression) {
+    _expression = expression;
+    _justEvaluated = false;
+  }
+
+  /// Restores a previously persisted session (spec §19): replaces the
+  /// tape and the in-progress expression wholesale. Repeat state is
+  /// cleared — the restored expression was never evaluated here.
+  void restoreSession(List<CalculationEntry> entries, String expression) {
+    _tape
+      ..clear()
+      ..addAll(entries);
+    int maxId = -1;
+    for (final CalculationEntry e in entries) {
+      final int? parsed = int.tryParse(e.id);
+      if (parsed != null && parsed > maxId) maxId = parsed;
+    }
+    _nextId = maxId + 1;
+    _expression = expression;
+    _justEvaluated = false;
+    _lastResult = null;
+    _lastOperator = null;
+    _lastOperandExpression = null;
+    _lastEvaluatedExpression = '';
   }
 
   /// Used by Quick Scan (spec §9) to edit a past input and recalculate.

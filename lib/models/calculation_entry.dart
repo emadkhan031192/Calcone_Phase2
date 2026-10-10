@@ -1,5 +1,7 @@
 import 'package:rational/rational.dart';
 
+import '../core/constants/app_constants.dart';
+
 /// A single completed calculation, as it appears in the calculation tape
 /// (spec §7), Quick Scan (spec §8), and History (spec §20).
 ///
@@ -17,11 +19,22 @@ class CalculationEntry {
   });
 
   final String id;
+
+  /// The raw expression (ASCII operators) as the parser saw it. Render
+  /// [displayExpression] for the user; use this for re-evaluation.
   final String expression;
   final Rational result;
   final DateTime timestamp;
   final String? label;
   final bool isPinned;
+
+  /// The expression rewritten with display glyphs (×, ÷, −) for the UI.
+  String get displayExpression {
+    return expression
+        .replaceAll(AppConstants.opMultiply, AppConstants.glyphMultiply)
+        .replaceAll(AppConstants.opDivide, AppConstants.glyphDivide)
+        .replaceAll(AppConstants.opSubtract, AppConstants.glyphSubtract);
+  }
 
   CalculationEntry copyWith({
     String? expression,
