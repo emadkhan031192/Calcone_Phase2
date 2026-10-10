@@ -1,3 +1,4 @@
+import 'package:decimal/decimal.dart';
 import 'package:rational/rational.dart';
 
 import '../../core/constants/app_constants.dart';
@@ -30,10 +31,11 @@ class CalculatorEngine {
   bool _justEvaluated = false;
 
   /// For "long press equals repeats the previous operation" (spec §17):
-  /// remembers the operator+operand that produced [_lastResult] so it can
-  /// be re-applied to the new left-hand value.
+  /// remembers the operator and the original operand *text* (e.g. "10%",
+  /// not its evaluated value) that produced [_lastResult], so repeating
+  /// "500+10%=" gives 605 instead of 550.1.
   String? _lastOperator;
-  Rational? _lastOperand;
+  String? _lastOperandExpression;
 
   final List<CalculationEntry> _tape = <CalculationEntry>[];
   int _nextId = 0;
@@ -83,8 +85,10 @@ class CalculatorEngine {
     }
 
     if (_justEvaluated && _lastResult != null) {
-      _expression = NumberFormatter.format(_lastResult!, maxDecimalPlaces: 20)
-          .replaceAll(',', '');
+      // Seed the new expression from the exact result — never round-trip
+      // through display formatting, or "1/3 = × 3 =" would give
+      // 0.99999999999999999999 instead of 1 (spec §32).
+      _expression = _losslessString(_lastResult!);
       _justEvaluated = false;
     }
 
@@ -107,22 +111,40 @@ class CalculatorEngine {
     _expression += AppConstants.opPercent;
   }
 
-  void inputOpenParen() {
+  /// Smart parenthesis key: inserts ")" when there is an unclosed "(" and
+  /// the cursor sits right after a value (digit, ")" or "%"); otherwise
+  /// inserts "(". One tap always does the sensible thing — no hidden
+  /// long-press needed to close a parenthesis.
+  void inputSmartParen() {
+    if (_expression.length >= AppConstants.maxExpressionLength) return;
     if (_justEvaluated) _startFresh();
-    _expression += AppConstants.glyphOpenParen;
-  }
-
-  void inputCloseParen() {
-    if (_justEvaluated) return;
+    if (_expression.isEmpty) {
+      _expression += AppConstants.glyphOpenParen;
+      return;
+    }
     final int opens = '('.allMatches(_expression).length;
     final int closes = ')'.allMatches(_expression).length;
-    if (opens > closes) _expression += AppConstants.glyphCloseParen;
+    final String lastChar = _expression[_expression.length - 1];
+    final bool lastIsValue = _isDigit(lastChar) ||
+        lastChar == AppConstants.glyphCloseParen ||
+        lastChar == AppConstants.glyphPercent;
+    if (opens > closes && lastIsValue) {
+      _expression += AppConstants.glyphCloseParen;
+    } else {
+      _expression += AppConstants.glyphOpenParen;
+    }
   }
 
   void backspace() {
     if (_justEvaluated) {
-      _startFresh();
-      return;
+      // Let the user edit the result they just got instead of wiping it:
+      // restore the exact value, then delete one character as usual.
+      if (_lastResult == null) {
+        _startFresh();
+        return;
+      }
+      _expression = _losslessString(_lastResult!);
+      _justEvaluated = false;
     }
     if (_expression.isEmpty) return;
     _expression = _expression.substring(0, _expression.length - 1);
@@ -142,7 +164,7 @@ class CalculatorEngine {
     _tape.clear();
     _lastResult = null;
     _lastOperator = null;
-    _lastOperand = null;
+    _lastOperandExpression = null;
   }
 
   /// Evaluates the current expression, appends it to the tape, and returns
@@ -171,17 +193,38 @@ class CalculatorEngine {
   }
 
   /// Long-press equals: re-applies the last operator/operand to the
-  /// current result (spec §17). No-op if there's nothing to repeat.
+  /// current result (spec §17). Only valid immediately after an
+  /// evaluation — long-pressing while a new expression is being typed is
+  /// a no-op instead of replaying a stale operation over what the user
+  /// typed. Returns null when there is nothing valid to repeat.
   String? repeatLastOperation() {
-    if (_lastOperator == null || _lastOperand == null || _lastResult == null) {
+    if (!_justEvaluated) return null;
+    if (_lastOperator == null ||
+        _lastOperandExpression == null ||
+        _lastResult == null) {
       return null;
     }
-    final String leftOperand =
-        NumberFormatter.format(_lastResult!, maxDecimalPlaces: 20).replaceAll(',', '');
-    final String rightOperand =
-        NumberFormatter.format(_lastOperand!, maxDecimalPlaces: 20).replaceAll(',', '');
-    _expression = '$leftOperand$_lastOperator$rightOperand';
-    return evaluate();
+    _expression =
+        '${_losslessString(_lastResult!)}$_lastOperator$_lastOperandExpression';
+    try {
+      return evaluate();
+    } on CalculatorException {
+      return null;
+    }
+  }
+
+  /// Best-effort evaluation of the current expression for the live result
+  /// preview, without touching the tape or the repeat state. Returns null
+  /// when the expression is empty or not complete enough to evaluate yet
+  /// (e.g. a trailing operator) — callers should keep the previous
+  /// preview in that case.
+  Rational? previewResult() {
+    if (_expression.isEmpty) return null;
+    try {
+      return _evaluator.evaluate(_expression);
+    } on CalculatorException {
+      return null;
+    }
   }
 
   void deleteTapeEntry(String id) {
@@ -223,21 +266,41 @@ class CalculatorEngine {
     final int lastOpIndex = _lastOperatorIndex();
     if (lastOpIndex == -1) {
       _lastOperator = null;
-      _lastOperand = null;
+      _lastOperandExpression = null;
       return;
     }
     final String operand = _expression.substring(lastOpIndex + 1);
     if (operand.isEmpty) {
       _lastOperator = null;
-      _lastOperand = null;
+      _lastOperandExpression = null;
       return;
     }
+    // Keep the operand's original text (e.g. "10%", not 0.1) so the smart
+    // percentage meaning survives the repeat. Validate that it parses so
+    // a repeat can never build garbage.
     try {
-      _lastOperator = _expression[lastOpIndex];
-      _lastOperand = _evaluator.evaluate(operand);
+      _evaluator.evaluate(operand);
     } on CalculatorException {
       _lastOperator = null;
-      _lastOperand = null;
+      _lastOperandExpression = null;
+      return;
     }
+    _lastOperator = _expression[lastOpIndex];
+    _lastOperandExpression = operand;
   }
+
+  /// Converts a [Rational] back to expression text without losing
+  /// exactness: a plain decimal when the value terminates, otherwise the
+  /// fraction in parentheses (e.g. "(1/3)"), which the parser reads back
+  /// exactly. Never route through display formatting here (spec §32).
+  String _losslessString(Rational value) {
+    if (value.hasFinitePrecision) {
+      return value.toDecimal().toString();
+    }
+    final String fraction = value.toString();
+    return fraction.contains('/') ? '($fraction)' : fraction;
+  }
+
+  bool _isDigit(String char) =>
+      char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;
 }

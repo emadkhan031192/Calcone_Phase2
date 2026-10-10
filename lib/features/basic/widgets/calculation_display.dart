@@ -45,7 +45,9 @@ class CalculationDisplay extends StatelessWidget {
           const SizedBox(height: AppConstants.spaceSm),
           Semantics(
             liveRegion: true,
-            label: errorMessage != null ? 'Error: $errorMessage' : 'Result: $result',
+            label: errorMessage != null
+                ? 'Error: $errorMessage'
+                : 'Result: $result',
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               reverse: true,
@@ -53,8 +55,11 @@ class CalculationDisplay extends StatelessWidget {
                 errorMessage ?? result,
                 style: textTheme.displayLarge?.copyWith(
                   color: errorMessage != null ? scheme.error : scheme.onSurface,
-                  fontSize: errorMessage != null ? 18 : textTheme.displayLarge?.fontSize,
-                  fontWeight: errorMessage != null ? FontWeight.w500 : FontWeight.w300,
+                  fontSize: errorMessage != null
+                      ? 18
+                      : textTheme.displayLarge?.fontSize,
+                  fontWeight:
+                      errorMessage != null ? FontWeight.w500 : FontWeight.w300,
                 ),
                 maxLines: 1,
               ),

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rational/rational.dart';
 
 import '../../core/errors/calculator_exception.dart';
+import '../../core/utils/number_formatter.dart';
 import '../../engines/calculator/calculator_engine.dart';
 import '../../models/calculation_entry.dart';
 
@@ -48,7 +50,9 @@ class CalculatorUiState {
 /// Bridges the UI-agnostic [CalculatorEngine] to Flutter's widget tree.
 /// Every public method here corresponds to exactly one user gesture.
 class CalculatorController extends StateNotifier<CalculatorUiState> {
-  CalculatorController() : _engine = CalculatorEngine(), super(CalculatorUiState.initial());
+  CalculatorController()
+      : _engine = CalculatorEngine(),
+        super(CalculatorUiState.initial());
 
   final CalculatorEngine _engine;
 
@@ -72,13 +76,10 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     _syncLivePreview();
   }
 
-  void inputOpenParen() {
-    _engine.inputOpenParen();
-    _syncLivePreview();
-  }
-
-  void inputCloseParen() {
-    _engine.inputCloseParen();
+  /// Smart parenthesis key: one tap inserts "(" or ")" depending on
+  /// context — no hidden long-press needed to close a parenthesis.
+  void inputSmartParen() {
+    _engine.inputSmartParen();
     _syncLivePreview();
   }
 
@@ -118,7 +119,12 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
 
   void repeatLastOperation() {
     final String? result = _engine.repeatLastOperation();
-    if (result == null) return;
+    if (result == null) {
+      // Nothing valid to repeat (e.g. mid-typing): long-press behaves
+      // like a normal equals press instead of doing nothing surprising.
+      evaluate();
+      return;
+    }
     state = state.copyWith(
       expression: _engine.displayExpression,
       resultPreview: result,
@@ -130,18 +136,29 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
 
   /// Live-updates the expression line and a best-effort preview of the
   /// result as the user types, without committing to the tape. Evaluation
-  /// errors while mid-typing (e.g. a trailing operator) are expected and
-  /// silently ignored here — they only matter when the user presses "=".
+  /// errors while mid-typing (e.g. a trailing operator) are expected: the
+  /// previous preview is kept until the expression becomes valid again.
   void _syncLivePreview() {
+    String preview = state.resultPreview;
+    if (_engine.rawExpression.isEmpty) {
+      preview = '0';
+    } else {
+      final Rational? live = _engine.previewResult();
+      if (live != null) {
+        preview = NumberFormatter.format(live);
+      }
+    }
     state = state.copyWith(
       expression: _engine.displayExpression,
+      resultPreview: preview,
       clearError: true,
       justEvaluated: false,
     );
   }
 }
 
-final StateNotifierProvider<CalculatorController, CalculatorUiState> calculatorControllerProvider =
+final StateNotifierProvider<CalculatorController, CalculatorUiState>
+    calculatorControllerProvider =
     StateNotifierProvider<CalculatorController, CalculatorUiState>(
   (ref) => CalculatorController(),
 );

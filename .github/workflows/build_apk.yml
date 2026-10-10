@@ -29,7 +29,9 @@ jobs:
         run: flutter pub get
 
       - name: Format code
-        run: dart format .
+        # Fails the build when committed code isn't formatted, instead of
+        # silently reformatting in CI (the reformatted files would be lost).
+        run: dart format --output=none --set-exit-if-changed .
 
       - name: Analyze
         run: flutter analyze
@@ -39,6 +41,14 @@ jobs:
 
       - name: Generate Android scaffolding
         run: flutter create . --platforms=android --project-name calcone
+
+      - name: Set Android launcher label
+        # flutter create derives the label from --project-name ("calcone");
+        # the app must install as "Calcone".
+        run: |
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:label="calcone"/android:label="Calcone"/' "$MANIFEST"
+          grep -o 'android:label="[^"]*"' "$MANIFEST" | head -1
 
       - name: Build release APK
         run: flutter build apk --release

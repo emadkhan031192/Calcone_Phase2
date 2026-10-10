@@ -100,7 +100,8 @@ abstract final class AppTheme {
 
   /// Keypad button colors, split by semantic role so features/basic doesn't
   /// need to know about the color scheme's internal naming.
-  static Color numberKeyColor(ColorScheme scheme) => scheme.surfaceContainerHigh;
+  static Color numberKeyColor(ColorScheme scheme) =>
+      scheme.surfaceContainerHigh;
   static Color operatorKeyColor(ColorScheme scheme) => scheme.primaryContainer;
   static Color equalsKeyColor(ColorScheme scheme) => scheme.primary;
   static Color utilityKeyColor(ColorScheme scheme) => scheme.surfaceContainer;

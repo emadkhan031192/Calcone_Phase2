@@ -12,13 +12,16 @@ abstract final class PercentageEngine {
   static final Rational _hundred = Rational.fromInt(100);
 
   /// What is [percent]% of [base]?
-  static Rational percentOf(Rational base, Rational percent) => base * percent / _hundred;
+  static Rational percentOf(Rational base, Rational percent) =>
+      base * percent / _hundred;
 
   /// [base] increased by [percent]%.
-  static Rational increaseBy(Rational base, Rational percent) => base + percentOf(base, percent);
+  static Rational increaseBy(Rational base, Rational percent) =>
+      base + percentOf(base, percent);
 
   /// [base] decreased by [percent]% (e.g. a discount).
-  static Rational decreaseBy(Rational base, Rational percent) => base - percentOf(base, percent);
+  static Rational decreaseBy(Rational base, Rational percent) =>
+      base - percentOf(base, percent);
 
   /// What percentage does [part] represent of [whole]?
   static Rational whatPercent(Rational part, Rational whole) {

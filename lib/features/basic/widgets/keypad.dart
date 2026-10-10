@@ -7,15 +7,18 @@ import '../../../widgets/calc_button.dart';
 import '../calculator_controller.dart';
 
 /// The four-row digit grid plus the equals bar — the entirety of what's
-/// visible on the home screen (spec §4). A slim utility row (AC / ⌫) sits
-/// above it: necessary for the app to actually function, but kept small
-/// and muted so it doesn't compete with the grid.
+/// visible on the home screen (spec §4). A slim utility row
+/// (AC / C / ⌫ / parentheses) sits above it: necessary for the app to
+/// actually function, but kept small and muted so it doesn't compete with
+/// the grid.
 class Keypad extends ConsumerWidget {
   const Keypad({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final CalculatorController controller = ref.read(calculatorControllerProvider.notifier);
+    final CalculatorController controller = ref.read(
+      calculatorControllerProvider.notifier,
+    );
     final ColorScheme scheme = Theme.of(context).colorScheme;
 
     final Color numberColor = AppTheme.numberKeyColor(scheme);
@@ -68,45 +71,52 @@ class Keypad extends ConsumerWidget {
               backgroundColor: utilityColor,
               foregroundColor: scheme.onSurfaceVariant,
               semanticLabel: 'Parenthesis',
-              onTap: () => controller.inputOpenParen(),
-              onLongPress: () => controller.inputCloseParen(),
+              onTap: () => controller.inputSmartParen(),
             ),
           ],
         ),
-        Row(children: <Widget>[
-          numberKey('7'),
-          numberKey('8'),
-          numberKey('9'),
-          operatorKey(AppConstants.glyphDivide, AppConstants.opDivide),
-        ]),
-        Row(children: <Widget>[
-          numberKey('4'),
-          numberKey('5'),
-          numberKey('6'),
-          operatorKey(AppConstants.glyphMultiply, AppConstants.opMultiply),
-        ]),
-        Row(children: <Widget>[
-          numberKey('1'),
-          numberKey('2'),
-          numberKey('3'),
-          operatorKey(AppConstants.glyphSubtract, AppConstants.opSubtract),
-        ]),
-        Row(children: <Widget>[
-          numberKey('0'),
-          CalcButton(
-            label: AppConstants.glyphDecimal,
-            backgroundColor: numberColor,
-            foregroundColor: scheme.onSurface,
-            onTap: controller.inputDecimalPoint,
-          ),
-          CalcButton(
-            label: AppConstants.glyphPercent,
-            backgroundColor: numberColor,
-            foregroundColor: scheme.onSurface,
-            onTap: controller.inputPercent,
-          ),
-          operatorKey(AppConstants.glyphAdd, AppConstants.opAdd),
-        ]),
+        Row(
+          children: <Widget>[
+            numberKey('7'),
+            numberKey('8'),
+            numberKey('9'),
+            operatorKey(AppConstants.glyphDivide, AppConstants.opDivide),
+          ],
+        ),
+        Row(
+          children: <Widget>[
+            numberKey('4'),
+            numberKey('5'),
+            numberKey('6'),
+            operatorKey(AppConstants.glyphMultiply, AppConstants.opMultiply),
+          ],
+        ),
+        Row(
+          children: <Widget>[
+            numberKey('1'),
+            numberKey('2'),
+            numberKey('3'),
+            operatorKey(AppConstants.glyphSubtract, AppConstants.opSubtract),
+          ],
+        ),
+        Row(
+          children: <Widget>[
+            numberKey('0'),
+            CalcButton(
+              label: AppConstants.glyphDecimal,
+              backgroundColor: numberColor,
+              foregroundColor: scheme.onSurface,
+              onTap: controller.inputDecimalPoint,
+            ),
+            CalcButton(
+              label: AppConstants.glyphPercent,
+              backgroundColor: numberColor,
+              foregroundColor: scheme.onSurface,
+              onTap: controller.inputPercent,
+            ),
+            operatorKey(AppConstants.glyphAdd, AppConstants.opAdd),
+          ],
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppConstants.spaceXs,

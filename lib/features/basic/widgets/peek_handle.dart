@@ -13,10 +13,8 @@ class PeekHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color color = Theme.of(context)
-        .colorScheme
-        .onSurfaceVariant
-        .withOpacity(0.5);
+    final Color color =
+        Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5);
     return Semantics(
       button: onTap != null,
       label: 'Quick Scan handle',

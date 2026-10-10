@@ -119,25 +119,25 @@ flutter run
 flutter test
 ```
 
+Every push to `main` also runs formatting, `flutter analyze`, and the
+full test suite on CI before the release APK is built.
+
 Current coverage (`test/`):
 
 - `engines/expression_evaluator_test.dart` — arithmetic, operator
   precedence, the smart percentage engine, decimal-precision edge cases
   (`0.1 + 0.2`, `1/3 * 3`), negative numbers, and error handling.
 - `engines/calculator_engine_test.dart` — keypad input handling
-  (operator replacement, single decimal point per number), backspace/
-  clear/clear-all, the session tape, and continuing a calculation from a
-  previous result.
+  (operator replacement, single decimal point per number, smart
+  parenthesis), backspace/clear/clear-all, the session tape, continuing a
+  calculation from a previous result without losing exact precision,
+  long-press-equals repeat (including the smart-percent case
+  `500+10% → 605`), and the live preview helper.
 - `engines/percentage_engine_test.dart` — the standalone percentage
   functions (`percentOf`, `increaseBy`, `markupPrice`, …) that later
   power the Finance module.
 - `core/number_formatter_test.dart` — grouping, trailing-zero trimming,
   sign handling, and capped precision on non-terminating decimals.
-
-> This scaffold was authored without a local Flutter/Dart SDK available
-> in the generation environment, so `flutter pub get && flutter test`
-> has not been executed here — please run it as the first step after
-> pulling the repo, and file an issue for anything that doesn't pass.
 
 ## Roadmap
 

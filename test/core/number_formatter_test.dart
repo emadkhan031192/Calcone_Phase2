@@ -24,9 +24,11 @@ void main() {
       expect(NumberFormatter.format(Rational.parse('0')), '0');
     });
 
-    test('caps non-terminating decimals at maxDecimalPlaces without crashing', () {
+    test('caps non-terminating decimals at maxDecimalPlaces without crashing',
+        () {
       final Rational oneThird = Rational.parse('1') / Rational.parse('3');
-      final String formatted = NumberFormatter.format(oneThird, maxDecimalPlaces: 4);
+      final String formatted =
+          NumberFormatter.format(oneThird, maxDecimalPlaces: 4);
       expect(formatted, '0.3333');
     });
   });

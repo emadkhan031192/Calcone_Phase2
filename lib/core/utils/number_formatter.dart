@@ -32,14 +32,18 @@ abstract final class NumberFormatter {
     if (isNegative) plain = plain.substring(1);
 
     final int dotIndex = plain.indexOf('.');
-    final String wholeDigits = dotIndex == -1 ? plain : plain.substring(0, dotIndex);
-    String fractionalDigits = dotIndex == -1 ? '' : plain.substring(dotIndex + 1);
+    final String wholeDigits =
+        dotIndex == -1 ? plain : plain.substring(0, dotIndex);
+    String fractionalDigits =
+        dotIndex == -1 ? '' : plain.substring(dotIndex + 1);
 
     // Trim trailing zeros without losing significant digits.
     fractionalDigits = fractionalDigits.replaceFirst(RegExp(r'0+$'), '');
 
     final String groupedWhole = _groupDigits(wholeDigits);
-    final String body = fractionalDigits.isEmpty ? groupedWhole : '$groupedWhole.$fractionalDigits';
+    final String body = fractionalDigits.isEmpty
+        ? groupedWhole
+        : '$groupedWhole.$fractionalDigits';
 
     // Never show a signed zero.
     final bool isZero = groupedWhole == '0' && fractionalDigits.isEmpty;
