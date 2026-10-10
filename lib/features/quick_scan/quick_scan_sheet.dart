@@ -76,21 +76,29 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
           padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
           child: Row(
             children: <Widget>[
-              Text(
-                'QUICK SCAN',
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
+              Expanded(
+                child: Row(
+                  children: <Widget>[
+                    Flexible(
+                      child: Text(
+                        'QUICK SCAN',
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${terms?.length ?? 0}',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                '${terms?.length ?? 0}',
-                style: textTheme.labelSmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
               IconButton(
                 tooltip: 'Share calculation',
                 icon: const Icon(Icons.share_outlined),
@@ -311,80 +319,16 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
   Future<void> _editTerm(List<ExpressionTerm> terms, int index) async {
     final CalculatorController controller =
         ref.read(calculatorControllerProvider.notifier);
-    final ExpressionTerm term = terms[index];
-    final TextEditingController textController =
-        TextEditingController(text: term.source);
-    String? error;
     await showDialog<void>(
       context: context,
-      builder: (BuildContext ctx) => StatefulBuilder(
-        builder: (BuildContext ctx, StateSetter setDialog) => AlertDialog(
-          title: const Text('Edit value'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              TextField(
-                controller: textController,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'e.g. 540',
-                  errorText: error,
-                ),
-                onSubmitted: (_) => _saveEdit(
-                  ctx,
-                  setDialog,
-                  (String? e) => error = e,
-                  controller,
-                  index,
-                  textController.text,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'The total recalculates automatically.',
-                style: Theme.of(ctx).textTheme.labelSmall,
-              ),
-            ],
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => _saveEdit(
-                ctx,
-                setDialog,
-                (String? e) => error = e,
-                controller,
-                index,
-                textController.text,
-              ),
-              child: const Text('Save'),
-            ),
-          ],
-        ),
+      builder: (BuildContext ctx) => _EditTermDialog(
+        initialText: terms[index].source,
+        onSave: (String text) {
+          controller.editQuickScanTerm(index, text);
+          if (mounted) setState(() => _selectedIndex = null);
+        },
       ),
     );
-    textController.dispose();
-  }
-
-  void _saveEdit(
-    BuildContext ctx,
-    StateSetter setDialog,
-    void Function(String?) setError,
-    CalculatorController controller,
-    int index,
-    String text,
-  ) {
-    try {
-      controller.editQuickScanTerm(index, text);
-      if (mounted) setState(() => _selectedIndex = null);
-      Navigator.of(ctx).pop();
-    } on CalculatorException catch (e) {
-      setDialog(() => setError(e.message));
-    }
   }
 
   void _copyText(String text, String message) {
@@ -538,6 +482,86 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Edit dialog for one Quick Scan term (spec §9).
+///
+/// Owns its [TextEditingController] so disposal happens with the dialog's
+/// own lifecycle — disposing it from the caller races the dialog route's
+/// exit transition and crashes the text field.
+class _EditTermDialog extends StatefulWidget {
+  const _EditTermDialog({
+    required this.initialText,
+    required this.onSave,
+  });
+
+  final String initialText;
+
+  /// Applies the edit; throws [CalculatorException] when the new text is
+  /// invalid so the dialog can show the error instead of closing.
+  final ValueChanged<String> onSave;
+
+  @override
+  State<_EditTermDialog> createState() => _EditTermDialogState();
+}
+
+class _EditTermDialogState extends State<_EditTermDialog> {
+  late final TextEditingController _textController =
+      TextEditingController(text: widget.initialText);
+  String? _error;
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    try {
+      widget.onSave(_textController.text);
+    } on CalculatorException catch (e) {
+      setState(() => _error = e.message);
+      return;
+    }
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit value'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          TextField(
+            controller: _textController,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: 'e.g. 540',
+              errorText: _error,
+            ),
+            onSubmitted: (_) => _submit(),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'The total recalculates automatically.',
+            style: Theme.of(context).textTheme.labelSmall,
+          ),
+        ],
+      ),
+      actions: <Widget>[
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _submit,
+          child: const Text('Save'),
+        ),
+      ],
     );
   }
 }
