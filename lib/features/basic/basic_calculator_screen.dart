@@ -60,7 +60,7 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     listenForUndo(ref, context);
 
     final CalculatorUiState state = ref.watch(calculatorControllerProvider);

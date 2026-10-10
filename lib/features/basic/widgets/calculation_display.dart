@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../sharing/share_sheet.dart';
 import '../calculator_controller.dart';
 
 /// The top of the screen: a smaller expression line, a large result, and
@@ -28,7 +29,6 @@ class CalculationDisplay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ColorScheme scheme = Theme.of(context).colorScheme;
     final TextTheme textTheme = Theme.of(context).textTheme;
 
     return Padding(
@@ -62,9 +62,7 @@ class CalculationDisplay extends ConsumerWidget {
               onTap: () => _copyResult(context, ref),
               onLongPress: () => _resultMenu(context, ref),
               onSwipeLeft: () => _copyResult(context, ref),
-              onSwipeRight: () => ref
-                  .read(calculatorControllerProvider.notifier)
-                  .shareResultText(),
+              onSwipeRight: () => _shareResult(context, ref),
             ),
           ),
         ],
@@ -75,7 +73,7 @@ class CalculationDisplay extends ConsumerWidget {
   void _copyResult(BuildContext context, WidgetRef ref) {
     final CalculatorController controller =
         ref.read(calculatorControllerProvider.notifier);
-    if (controller.state.errorMessage != null) return;
+    if (controller.hasError) return;
     Clipboard.setData(ClipboardData(text: result));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -85,16 +83,27 @@ class CalculationDisplay extends ConsumerWidget {
     );
   }
 
+  void _shareResult(BuildContext context, WidgetRef ref) {
+    final CalculatorController controller =
+        ref.read(calculatorControllerProvider.notifier);
+    if (controller.hasError) return;
+    if (controller.currentExpression.isEmpty && !controller.justEvaluated) {
+      return;
+    }
+    showShareSheet(context, controller.resultSharePayload());
+  }
+
   Future<void> _resultMenu(BuildContext context, WidgetRef ref) async {
     final CalculatorController controller =
         ref.read(calculatorControllerProvider.notifier);
-    if (controller.state.errorMessage != null) return;
+    if (controller.hasError) return;
     final List<String>? steps = controller.explainResult();
     final String? choice = await showMenu<String>(
       context: context,
       position: const RelativeRect.fromLTRB(100, 200, 100, 200),
       items: <PopupMenuEntry<String>>[
         const PopupMenuItem<String>(value: 'copy', child: Text('Copy')),
+        const PopupMenuItem<String>(value: 'share', child: Text('Share')),
         const PopupMenuItem<String>(value: 'save', child: Text('Save')),
         if (steps != null)
           const PopupMenuItem<String>(
@@ -105,6 +114,8 @@ class CalculationDisplay extends ConsumerWidget {
     switch (choice) {
       case 'copy':
         _copyResult(context, ref);
+      case 'share':
+        _shareResult(context, ref);
       case 'save':
         await controller.saveCurrentResult();
         if (context.mounted) {

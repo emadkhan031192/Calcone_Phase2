@@ -8,6 +8,7 @@ import '../../core/errors/calculator_exception.dart';
 import '../../core/utils/number_formatter.dart';
 import '../../features/basic/calculator_controller.dart';
 import '../../features/basic/widgets/undo_snackbar.dart';
+import '../../features/sharing/share_sheet.dart';
 import '../../models/calculation_entry.dart';
 import 'widgets/scan_tile.dart';
 
@@ -91,6 +92,16 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                 ),
               ),
               const Spacer(),
+              IconButton(
+                tooltip: 'Share calculation',
+                icon: const Icon(Icons.share_outlined),
+                onPressed: tape.isEmpty
+                    ? null
+                    : () => showShareSheet(
+                          context,
+                          controller.calculationSharePayload(),
+                        ),
+              ),
               IconButton(
                 tooltip: 'Saved numbers',
                 icon: const Icon(Icons.bookmark_border_rounded),
@@ -280,7 +291,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
     if (!mounted || choice == null) return;
     switch (choice) {
       case 'edit':
-        _editEntry(entry);
+        await _editEntry(entry);
       case 'delete':
         setState(() => _selectedId = null);
         controller.deleteTapeEntry(entry.id);

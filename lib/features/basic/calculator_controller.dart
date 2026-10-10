@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rational/rational.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../core/errors/calculator_exception.dart';
 import '../../core/utils/number_formatter.dart';
@@ -11,6 +10,7 @@ import '../../engines/expression/expression_evaluator.dart';
 import '../../engines/steps/step_explainer.dart';
 import '../../models/calculation_entry.dart';
 import '../../services/session_service.dart';
+import '../sharing/share_payload.dart';
 
 /// A destructive action the user can take back (spec §18). Shown as a
 /// small snackbar with an Undo button — no permanent on-screen chrome.
@@ -90,6 +90,15 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
         Rational.zero,
         (Rational sum, CalculationEntry e) => sum + e.result,
       );
+
+  /// Whether the display is currently showing an error message.
+  bool get hasError => state.errorMessage != null;
+
+  /// The current display expression (for sharing).
+  String get currentExpression => state.expression;
+
+  /// Whether the last action was an evaluation.
+  bool get justEvaluated => state.justEvaluated;
 
   void inputDigit(String digit) {
     _engine.inputDigit(digit);
@@ -280,15 +289,37 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     return StepExplainer.explain(expr);
   }
 
-  /// Shares "expression = result" as text through the native share sheet
-  /// (spec §17, swipe right). The rich image card lands in Phase 3.
-  Future<void> shareResultText() {
-    if (state.errorMessage != null) return Future<void>.value();
+  /// Payload for sharing the current result as a card (spec §12).
+  SharePayload resultSharePayload() {
     final String expr = _engine.justEvaluated
         ? CalculatorEngine.toDisplayString(_engine.lastEvaluatedExpression)
         : state.expression;
-    if (expr.isEmpty) return Future<void>.value();
-    return Share.share('$expr = ${state.resultPreview}', subject: 'Calcone');
+    return SharePayload(
+      title: 'CALCONE',
+      rows: <String>[expr],
+      total: '= ${state.resultPreview}',
+    );
+  }
+
+  /// Payload for sharing the whole tape (spec §13).
+  SharePayload calculationSharePayload() {
+    return SharePayload(
+      title: 'CALCULATION',
+      rows: <String>[
+        for (final CalculationEntry e in _engine.tape) _shareLine(e),
+      ],
+      total: 'TOTAL: ${NumberFormatter.format(tapeTotal)}',
+    );
+  }
+
+  /// One share line per entry: a bare value on its own, or
+  /// "expression = result" when the entry was a real calculation.
+  String _shareLine(CalculationEntry e) {
+    final String resultStr = NumberFormatter.format(e.result);
+    if (e.expression.replaceAll(',', '') == resultStr.replaceAll(',', '')) {
+      return resultStr;
+    }
+    return '${e.displayExpression} = $resultStr';
   }
 
   void _pushUndo(String label, void Function() restore) {
