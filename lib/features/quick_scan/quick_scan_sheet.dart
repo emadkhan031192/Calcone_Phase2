@@ -3,13 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rational/rational.dart';
 
-import '../../core/constants/app_constants.dart';
 import '../../core/errors/calculator_exception.dart';
 import '../../core/utils/number_formatter.dart';
+import '../../engines/decomposition/expression_decomposer.dart';
 import '../../features/basic/calculator_controller.dart';
 import '../../features/basic/widgets/undo_snackbar.dart';
 import '../../features/sharing/share_sheet.dart';
-import '../../models/calculation_entry.dart';
 import 'widgets/scan_tile.dart';
 
 /// Opens the Quick Scan bottom sheet (spec §8–§11).
@@ -33,8 +32,7 @@ Future<void> showQuickScanSheet(BuildContext context) {
   );
 }
 
-/// Entries with more than this many values switch to the grouped view
-/// (spec §10).
+/// Terms beyond this count switch to the grouped view (spec §10).
 const int _groupThreshold = 12;
 const int _groupSize = 4;
 
@@ -48,19 +46,20 @@ class QuickScanSheet extends ConsumerStatefulWidget {
 }
 
 class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
-  String? _selectedId;
+  int? _selectedIndex;
 
   @override
   Widget build(BuildContext context) {
     listenForUndo(ref, context);
 
-    final CalculatorUiState state = ref.watch(calculatorControllerProvider);
     final CalculatorController controller =
         ref.read(calculatorControllerProvider.notifier);
+    // Rebuild when the calculation changes.
+    ref.watch(calculatorControllerProvider);
     final ColorScheme scheme = Theme.of(context).colorScheme;
     final TextTheme textTheme = Theme.of(context).textTheme;
-    final List<CalculationEntry> tape = state.tape;
-    final Rational total = controller.tapeTotal;
+    final List<ExpressionTerm>? terms = controller.quickScanTerms;
+    final Rational? total = controller.quickScanTotal;
 
     return Column(
       children: <Widget>[
@@ -74,7 +73,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
+          padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
           child: Row(
             children: <Widget>[
               Text(
@@ -86,7 +85,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
               ),
               const SizedBox(width: 8),
               Text(
-                '${tape.length}',
+                '${terms?.length ?? 0}',
                 style: textTheme.labelSmall?.copyWith(
                   color: scheme.onSurfaceVariant,
                 ),
@@ -95,7 +94,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
               IconButton(
                 tooltip: 'Share calculation',
                 icon: const Icon(Icons.share_outlined),
-                onPressed: tape.isEmpty
+                onPressed: terms == null
                     ? null
                     : () => showShareSheet(
                           context,
@@ -108,30 +107,26 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                 onPressed: _showSavedNumbers,
               ),
               IconButton(
-                tooltip: 'Clear tape',
+                tooltip: 'Clear',
                 icon: const Icon(Icons.delete_sweep_outlined),
-                onPressed: tape.isEmpty
+                onPressed: terms == null
                     ? null
                     : () {
-                        setState(() => _selectedId = null);
-                        controller.clearTape();
+                        setState(() => _selectedIndex = null);
+                        controller.clearAll();
+                        Navigator.of(context).pop();
                       },
-              ),
-              IconButton(
-                tooltip: 'Close',
-                icon: const Icon(Icons.close_rounded),
-                onPressed: () => Navigator.of(context).pop(),
               ),
             ],
           ),
         ),
         Expanded(
-          child: tape.isEmpty
+          child: terms == null
               ? _emptyState(scheme, textTheme)
               : CustomScrollView(
                   controller: widget.scrollController,
                   slivers: <Widget>[
-                    if (tape.length <= _groupThreshold)
+                    if (terms.length <= _groupThreshold)
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                         sliver: SliverGrid(
@@ -144,20 +139,20 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                           ),
                           delegate: SliverChildBuilderDelegate(
                             (BuildContext ctx, int i) =>
-                                _tile(ctx, tape[i], controller),
-                            childCount: tape.length,
+                                _tile(ctx, terms, i, controller),
+                            childCount: terms.length,
                           ),
                         ),
                       )
                     else
-                      ..._groupedSlivers(tape, controller),
+                      ..._groupedSlivers(terms, controller),
                     const SliverToBoxAdapter(child: SizedBox(height: 8)),
                   ],
                 ),
         ),
-        if (_selectedId != null)
-          _selectionBar(controller, tape, scheme, textTheme),
-        _totalBar(total, tape.isEmpty, scheme, textTheme),
+        if (_selectedIndex != null && terms != null)
+          _selectionBar(controller, terms, scheme),
+        _totalBar(total, scheme, textTheme),
       ],
     );
   }
@@ -190,22 +185,23 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
     );
   }
 
-  /// Long tapes are grouped visually with subtotals (spec §10) while
-  /// every value stays tappable.
+  /// Long term lists are grouped visually with subtotals (spec §10)
+  /// while every value stays tappable.
   List<Widget> _groupedSlivers(
-    List<CalculationEntry> tape,
+    List<ExpressionTerm> terms,
     CalculatorController controller,
   ) {
     final List<Widget> slivers = <Widget>[];
-    for (int g = 0; g * _groupSize < tape.length; g++) {
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    for (int g = 0; g * _groupSize < terms.length; g++) {
       final int start = g * _groupSize;
-      final int end = (start + _groupSize).clamp(0, tape.length);
-      final List<CalculationEntry> group = tape.sublist(start, end);
+      final int end = (start + _groupSize).clamp(0, terms.length);
+      final List<ExpressionTerm> group = terms.sublist(start, end);
       final Rational subtotal = group.fold<Rational>(
         Rational.zero,
-        (Rational s, CalculationEntry e) => s + e.result,
+        (Rational s, ExpressionTerm t) => s + t.value,
       );
-      final ColorScheme scheme = Theme.of(context).colorScheme;
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
@@ -218,17 +214,17 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                   children: <Widget>[
                     Text(
                       '${start + 1}–$end',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      style: textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     Text(
                       NumberFormatter.format(subtotal),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      style: textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -241,8 +237,9 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                   crossAxisSpacing: 8,
                   childAspectRatio: 1.1,
                   children: <Widget>[
-                    for (final CalculationEntry e in group)
-                      _tile(context, e, controller, compact: true),
+                    for (int i = 0; i < group.length; i++)
+                      _tile(context, terms, start + i, controller,
+                          compact: true),
                   ],
                 ),
               ],
@@ -256,25 +253,27 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
 
   Widget _tile(
     BuildContext context,
-    CalculationEntry entry,
+    List<ExpressionTerm> terms,
+    int index,
     CalculatorController controller, {
     bool compact = false,
   }) {
     return ScanTile(
-      entry: entry,
+      term: terms[index],
       compact: compact,
-      selected: _selectedId == entry.id,
+      selected: _selectedIndex == index,
       onTap: () => setState(() {
-        _selectedId = _selectedId == entry.id ? null : entry.id;
+        _selectedIndex = _selectedIndex == index ? null : index;
       }),
       onLongPressStart: (LongPressStartDetails details) =>
-          _tileMenu(context, entry, controller, details.globalPosition),
+          _tileMenu(context, terms, index, controller, details.globalPosition),
     );
   }
 
   Future<void> _tileMenu(
     BuildContext context,
-    CalculationEntry entry,
+    List<ExpressionTerm> terms,
+    int index,
     CalculatorController controller,
     Offset position,
   ) async {
@@ -294,34 +293,33 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
       ],
     );
     if (!mounted || choice == null) return;
+    final ExpressionTerm term = terms[index];
     switch (choice) {
       case 'edit':
-        await _editEntry(entry);
+        await _editTerm(terms, index);
       case 'delete':
-        setState(() => _selectedId = null);
-        controller.deleteTapeEntry(entry.id);
+        setState(() => _selectedIndex = null);
+        controller.deleteQuickScanTerm(index);
       case 'copy':
-        _copyText(
-          '${entry.displayExpression} = ${NumberFormatter.format(entry.result)}',
-          'Copied',
-        );
+        _copyText(NumberFormatter.format(term.value), 'Copied');
       case 'save':
-        await controller.saveTapeEntry(entry.id);
+        await controller.saveQuickScanTerm(index);
         if (mounted) _copyText('', 'Saved');
     }
   }
 
-  Future<void> _editEntry(CalculationEntry entry) async {
+  Future<void> _editTerm(List<ExpressionTerm> terms, int index) async {
     final CalculatorController controller =
         ref.read(calculatorControllerProvider.notifier);
+    final ExpressionTerm term = terms[index];
     final TextEditingController textController =
-        TextEditingController(text: entry.displayExpression);
+        TextEditingController(text: term.source);
     String? error;
     await showDialog<void>(
       context: context,
       builder: (BuildContext ctx) => StatefulBuilder(
         builder: (BuildContext ctx, StateSetter setDialog) => AlertDialog(
-          title: const Text('Edit entry'),
+          title: const Text('Edit value'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,7 +328,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                 controller: textController,
                 autofocus: true,
                 decoration: InputDecoration(
-                  hintText: 'e.g. 2500*15%',
+                  hintText: 'e.g. 540',
                   errorText: error,
                 ),
                 onSubmitted: (_) => _saveEdit(
@@ -338,7 +336,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                   setDialog,
                   (String? e) => error = e,
                   controller,
-                  entry,
+                  index,
                   textController.text,
                 ),
               ),
@@ -360,7 +358,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                 setDialog,
                 (String? e) => error = e,
                 controller,
-                entry,
+                index,
                 textController.text,
               ),
               child: const Text('Save'),
@@ -377,23 +375,16 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
     StateSetter setDialog,
     void Function(String?) setError,
     CalculatorController controller,
-    CalculationEntry entry,
+    int index,
     String text,
   ) {
     try {
-      controller.editTapeEntry(entry.id, _toRawExpression(text));
-      if (mounted) setState(() => _selectedId = null);
+      controller.editQuickScanTerm(index, text);
+      if (mounted) setState(() => _selectedIndex = null);
       Navigator.of(ctx).pop();
     } on CalculatorException catch (e) {
       setDialog(() => setError(e.message));
     }
-  }
-
-  String _toRawExpression(String display) {
-    return display
-        .replaceAll(AppConstants.glyphMultiply, AppConstants.opMultiply)
-        .replaceAll(AppConstants.glyphDivide, AppConstants.opDivide)
-        .replaceAll(AppConstants.glyphSubtract, AppConstants.opSubtract);
   }
 
   void _copyText(String text, String message) {
@@ -410,16 +401,15 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
 
   Widget _selectionBar(
     CalculatorController controller,
-    List<CalculationEntry> tape,
+    List<ExpressionTerm> terms,
     ColorScheme scheme,
-    TextTheme textTheme,
   ) {
-    final int index = tape.indexWhere((e) => e.id == _selectedId);
-    if (index == -1) {
-      _selectedId = null;
+    final int index = _selectedIndex!;
+    if (index < 0 || index >= terms.length) {
+      _selectedIndex = null;
       return const SizedBox.shrink();
     }
-    final CalculationEntry entry = tape[index];
+    final ExpressionTerm term = terms[index];
     return Container(
       decoration: BoxDecoration(
         border: Border(top: BorderSide(color: scheme.outlineVariant)),
@@ -431,21 +421,21 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
           TextButton.icon(
             icon: const Icon(Icons.edit_outlined, size: 18),
             label: const Text('Edit'),
-            onPressed: () => _editEntry(entry),
+            onPressed: () => _editTerm(terms, index),
           ),
           TextButton.icon(
             icon: const Icon(Icons.delete_outline_rounded, size: 18),
             label: const Text('Delete'),
             onPressed: () {
-              setState(() => _selectedId = null);
-              controller.deleteTapeEntry(entry.id);
+              setState(() => _selectedIndex = null);
+              controller.deleteQuickScanTerm(index);
             },
           ),
           TextButton.icon(
             icon: const Icon(Icons.copy_outlined, size: 18),
             label: const Text('Copy'),
             onPressed: () => _copyText(
-              '${entry.displayExpression} = ${NumberFormatter.format(entry.result)}',
+              NumberFormatter.format(term.value),
               'Copied',
             ),
           ),
@@ -455,8 +445,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
   }
 
   Widget _totalBar(
-    Rational total,
-    bool empty,
+    Rational? total,
     ColorScheme scheme,
     TextTheme textTheme,
   ) {
@@ -477,7 +466,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
             ),
           ),
           Text(
-            empty ? '—' : NumberFormatter.format(total),
+            total == null ? '—' : NumberFormatter.format(total),
             style: textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w700,
             ),

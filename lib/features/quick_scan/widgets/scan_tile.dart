@@ -2,21 +2,22 @@ import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/utils/number_formatter.dart';
-import '../../../models/calculation_entry.dart';
+import '../../../engines/decomposition/expression_decomposer.dart';
 
-/// One value in the Quick Scan grid (spec §8): the expression small, the
-/// result prominent. Deliberately card-free — no borders unless selected.
+/// One term in the Quick Scan grid (spec §8): the term's source small,
+/// its value prominent. Deliberately card-free — no borders unless
+/// selected.
 class ScanTile extends StatelessWidget {
   const ScanTile({
     super.key,
-    required this.entry,
+    required this.term,
     required this.selected,
     required this.onTap,
     required this.onLongPressStart,
     this.compact = false,
   });
 
-  final CalculationEntry entry;
+  final ExpressionTerm term;
   final bool selected;
   final VoidCallback onTap;
   final void Function(LongPressStartDetails details) onLongPressStart;
@@ -48,7 +49,7 @@ class ScanTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: <Widget>[
             Text(
-              entry.displayExpression,
+              term.source,
               style: textTheme.labelSmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -57,7 +58,7 @@ class ScanTile extends StatelessWidget {
             ),
             SizedBox(height: compact ? 2 : 4),
             Text(
-              NumberFormatter.format(entry.result),
+              NumberFormatter.format(term.value),
               style: (compact ? textTheme.titleMedium : textTheme.titleLarge)
                   ?.copyWith(
                 fontWeight: FontWeight.w600,

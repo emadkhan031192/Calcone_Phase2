@@ -6,7 +6,7 @@ import 'package:rational/rational.dart';
 import '../../core/errors/calculator_exception.dart';
 import '../../core/utils/number_formatter.dart';
 import '../../engines/calculator/calculator_engine.dart';
-import '../../engines/expression/expression_evaluator.dart';
+import '../../engines/decomposition/expression_decomposer.dart';
 import '../../engines/steps/step_explainer.dart';
 import '../../models/calculation_entry.dart';
 import '../../services/session_service.dart';
@@ -85,11 +85,138 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
   final List<_UndoEntry> _undoStack = <_UndoEntry>[];
   Timer? _persistTimer;
 
-  /// Sum of every tape entry's exact result (Quick Scan total, spec §8).
+  /// Sum of every tape entry's exact result.
   Rational get tapeTotal => _engine.tape.fold<Rational>(
         Rational.zero,
         (Rational sum, CalculationEntry e) => sum + e.result,
       );
+
+  /// The expression Quick Scan operates on: the last evaluated
+  /// expression when the displayed result came from it, otherwise the
+  /// in-progress expression.
+  String get _quickScanExpression => _engine.justEvaluated
+      ? _engine.lastEvaluatedExpression
+      : _engine.rawExpression;
+
+  /// The active calculation split into editable terms (spec §8–§9), or
+  /// null when there is nothing to scan.
+  List<ExpressionTerm>? get quickScanTerms {
+    final String expr = _quickScanExpression;
+    if (expr.isEmpty) return null;
+    return ExpressionDecomposer.decompose(expr);
+  }
+
+  /// Exact total of the active terms (Quick Scan total, spec §8).
+  Rational? get quickScanTotal {
+    final List<ExpressionTerm>? terms = quickScanTerms;
+    if (terms == null) return null;
+    return terms.fold<Rational>(
+      Rational.zero,
+      (Rational sum, ExpressionTerm t) => sum + t.value,
+    );
+  }
+
+  /// Replaces one Quick Scan term and recalculates (spec §9). An empty
+  /// [newText] deletes the term. Throws [CalculatorException] when the
+  /// rebuilt expression is invalid — the UI shows the message and keeps
+  /// the old term.
+  void editQuickScanTerm(int index, String newText) {
+    if (newText.trim().isEmpty) {
+      deleteQuickScanTerm(index);
+      return;
+    }
+    _mutateTerms('Edit undone', (List<ExpressionTerm> terms) {
+      if (index < 0 || index >= terms.length) return _joinTerms(terms);
+      return _rebuildTerm(terms, index, newText);
+    });
+  }
+
+  /// Deletes one Quick Scan term and recalculates (spec §9).
+  void deleteQuickScanTerm(int index) {
+    _mutateTerms('Entry deleted', (List<ExpressionTerm> terms) {
+      if (index < 0 || index >= terms.length) return _joinTerms(terms);
+      final List<ExpressionTerm> kept = <ExpressionTerm>[
+        for (int i = 0; i < terms.length; i++)
+          if (i != index) terms[i],
+      ];
+      return _joinTerms(kept);
+    });
+  }
+
+  /// Saves one Quick Scan term's value (spec §9, §27).
+  Future<void> saveQuickScanTerm(int index) {
+    final List<ExpressionTerm>? terms = quickScanTerms;
+    if (terms == null || index < 0 || index >= terms.length) {
+      return Future<void>.value();
+    }
+    return _sessions.saveNumber(NumberFormatter.format(terms[index].value));
+  }
+
+  /// Applies [transform] to the active terms, recalculates, and makes the
+  /// change undoable. Evaluated calculations are re-evaluated in place
+  /// (the tape entry is replaced, not duplicated); in-progress input is
+  /// just updated with a live preview.
+  void _mutateTerms(
+    String undoLabel,
+    String Function(List<ExpressionTerm>) transform,
+  ) {
+    final List<ExpressionTerm>? terms = quickScanTerms;
+    final String oldExpr = _quickScanExpression;
+    if (terms == null || oldExpr.isEmpty) return;
+    final bool wasEvaluated = _engine.justEvaluated;
+    final String rebuilt = transform(terms);
+    _pushUndo(undoLabel, () {
+      if (wasEvaluated) {
+        _syncEvaluated(_engine.reevaluateLast(oldExpr));
+      } else {
+        _engine.restoreExpression(oldExpr);
+        _syncLivePreview();
+      }
+    });
+    if (rebuilt.trim().isEmpty) {
+      _engine.restoreExpression('');
+      _syncLivePreview();
+      _schedulePersist();
+      return;
+    }
+    if (wasEvaluated) {
+      _syncEvaluated(_engine.reevaluateLast(rebuilt));
+    } else {
+      _engine.restoreExpression(rebuilt);
+      _syncLivePreview();
+    }
+    _schedulePersist();
+  }
+
+  String _joinTerms(List<ExpressionTerm> terms) {
+    String joined = terms.map((ExpressionTerm t) => t.source).join();
+    if (joined.startsWith('+')) joined = joined.substring(1);
+    return joined;
+  }
+
+  String _rebuildTerm(
+    List<ExpressionTerm> terms,
+    int index,
+    String newText,
+  ) {
+    final String t = newText.trim();
+    String newSign;
+    String newBody;
+    if (t.startsWith('+') || t.startsWith('-')) {
+      newSign = t[0];
+      newBody = t.substring(1).trim();
+    } else {
+      newSign = terms[index].sign;
+      newBody = t;
+    }
+    final List<String> parts = <String>[
+      for (int i = 0; i < terms.length; i++)
+        i == index ? '$newSign$newBody' : terms[i].source,
+    ];
+    String joined = parts.join();
+    if (joined.startsWith('+')) joined = joined.substring(1);
+    return joined;
+  }
 
   /// Whether the display is currently showing an error message.
   bool get hasError => state.errorMessage != null;
@@ -199,34 +326,6 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     _schedulePersist();
   }
 
-  /// Deletes one tape entry (Quick Scan, spec §9). Undoable.
-  void deleteTapeEntry(String id) {
-    final int index = _engine.tape.indexWhere((e) => e.id == id);
-    if (index == -1) return;
-    final CalculationEntry removed = _engine.tape[index];
-    _engine.deleteTapeEntry(id);
-    _pushUndo('Entry deleted', () => _engine.insertTapeEntry(index, removed));
-    _syncTape();
-  }
-
-  /// Re-evaluates a tape entry from edited expression text and updates the
-  /// total automatically (Quick Scan, spec §9). Throws
-  /// [CalculatorException] when the edited text isn't a valid expression —
-  /// the UI shows the friendly message and keeps the old entry.
-  void editTapeEntry(String id, String newExpression) {
-    final int index = _engine.tape.indexWhere((e) => e.id == id);
-    if (index == -1) return;
-    final CalculationEntry old = _engine.tape[index];
-    final String trimmed = newExpression.trim();
-    final Rational newValue = const ExpressionEvaluator().evaluate(trimmed);
-    _engine.editTapeEntry(id, newValue, trimmed);
-    _pushUndo(
-      'Edit undone',
-      () => _engine.editTapeEntry(id, old.result, old.expression),
-    );
-    _syncTape();
-  }
-
   /// Clears the whole session tape (Quick Scan action). Undoable.
   void clearTape() {
     if (_engine.tape.isEmpty) return;
@@ -241,7 +340,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
   void undo() {
     if (_undoStack.isEmpty) return;
     _undoStack.removeLast().restore();
-    _syncAll(clearUndo: true, justEvaluated: false);
+    _syncAll(clearUndo: true);
     _schedulePersist();
   }
 
@@ -261,7 +360,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     if (loaded.tape.isEmpty && loaded.expression.isEmpty) return;
     _engine.restoreSession(loaded.tape, loaded.expression);
     _undoStack.clear();
-    _syncAll(clearUndo: true, justEvaluated: false);
+    _syncAll(clearUndo: true);
   }
 
   Future<void> discardSavedSession() => _sessions.clearSession();
@@ -276,14 +375,6 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
 
   Future<void> removeSavedNumber(String value) =>
       _sessions.removeSavedNumber(value);
-
-  /// Saves one tape entry's result (Quick Scan long-press menu, spec §9).
-  Future<void> saveTapeEntry(String id) {
-    final int index = _engine.tape.indexWhere((e) => e.id == id);
-    if (index == -1) return Future<void>.value();
-    return _sessions
-        .saveNumber(NumberFormatter.format(_engine.tape[index].result));
-  }
 
   /// Human-readable steps for the currently shown result (spec §25), or
   /// null when it can't be explained safely — then the UI shows the
@@ -309,25 +400,30 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     );
   }
 
-  /// Payload for sharing the whole tape (spec §13).
+  /// Payload for sharing the active calculation (spec §13): one row per
+  /// term, then the total.
   SharePayload calculationSharePayload() {
+    final List<ExpressionTerm>? terms = quickScanTerms;
+    if (terms == null) {
+      return const SharePayload(title: 'CALCULATION', rows: <String>[]);
+    }
     return SharePayload(
       title: 'CALCULATION',
       rows: <String>[
-        for (final CalculationEntry e in _engine.tape) _shareLine(e),
+        for (final ExpressionTerm t in terms) _termShareLine(t),
       ],
-      total: 'TOTAL: ${NumberFormatter.format(tapeTotal)}',
+      total: 'TOTAL: ${NumberFormatter.format(quickScanTotal!)}',
     );
   }
 
-  /// One share line per entry: a bare value on its own, or
-  /// "expression = result" when the entry was a real calculation.
-  String _shareLine(CalculationEntry e) {
-    final String resultStr = NumberFormatter.format(e.result);
-    if (e.expression.replaceAll(',', '') == resultStr.replaceAll(',', '')) {
-      return resultStr;
+  /// One share line per term: a bare value on its own, or
+  /// "term = value" when the term was itself a calculation.
+  String _termShareLine(ExpressionTerm term) {
+    final String valueStr = NumberFormatter.format(term.value);
+    if (term.source.replaceAll(',', '') == valueStr.replaceAll(',', '')) {
+      return valueStr;
     }
-    return '${e.displayExpression} = $resultStr';
+    return '${term.source} = $valueStr';
   }
 
   void _pushUndo(String label, void Function() restore) {
@@ -344,7 +440,19 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     _schedulePersist();
   }
 
-  void _syncAll({bool clearUndo = false, bool? justEvaluated}) {
+  /// Refreshes the UI after an evaluation (or re-evaluation) with the
+  /// given formatted result.
+  void _syncEvaluated(String result) {
+    state = state.copyWith(
+      expression: _engine.displayExpression,
+      resultPreview: result,
+      tape: _engine.tape,
+      clearError: true,
+      justEvaluated: _engine.justEvaluated,
+    );
+  }
+
+  void _syncAll({bool clearUndo = false}) {
     final String expr = _engine.rawExpression;
     String preview = state.resultPreview;
     if (expr.isEmpty) {
@@ -358,7 +466,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
       resultPreview: preview,
       tape: _engine.tape,
       clearError: true,
-      justEvaluated: justEvaluated,
+      justEvaluated: _engine.justEvaluated,
       clearUndo: clearUndo,
     );
   }

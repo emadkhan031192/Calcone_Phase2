@@ -52,6 +52,8 @@ class CalculatorEngine {
 
   bool get hasResult => _lastResult != null;
 
+  Rational? get lastResult => _lastResult;
+
   bool get justEvaluated => _justEvaluated;
 
   /// Raw expression text that produced the last result.
@@ -205,6 +207,31 @@ class CalculatorEngine {
 
     _lastResult = result;
     _justEvaluated = true;
+    return NumberFormatter.format(result);
+  }
+
+  /// Re-evaluates [newExpression], replacing the most recent tape entry
+  /// instead of appending a new one (Quick Scan term editing, spec §9).
+  /// The entry keeps its id and position; repeat state follows the new
+  /// evaluation. Throws [CalculatorException] for invalid input.
+  String reevaluateLast(String newExpression) {
+    final Rational result = _evaluator.evaluate(newExpression);
+    _expression = newExpression;
+    _justEvaluated = true;
+    _lastResult = result;
+    _lastEvaluatedExpression = newExpression;
+    _rememberRepeatOperation();
+    if (_tape.isNotEmpty) {
+      final CalculationEntry old = _tape.removeLast();
+      _tape.add(CalculationEntry(
+        id: old.id,
+        expression: newExpression,
+        result: result,
+        timestamp: old.timestamp,
+        label: old.label,
+        isPinned: old.isPinned,
+      ));
+    }
     return NumberFormatter.format(result);
   }
 

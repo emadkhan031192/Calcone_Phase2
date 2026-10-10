@@ -58,7 +58,7 @@ void main() {
       for (final String v in <String>['180', '650', '450', '320']) {
         expect(
           find.byWidgetPredicate(
-            (Widget w) => w is ScanTile && w.entry.result.toString() == v,
+            (Widget w) => w is ScanTile && w.term.value.toString() == v,
           ),
           findsOneWidget,
         );
@@ -66,7 +66,7 @@ void main() {
 
       // 5-6. Taps 450, edits it to 540.
       await tester.tap(find.byWidgetPredicate(
-        (Widget w) => w is ScanTile && w.entry.result.toString() == '450',
+        (Widget w) => w is ScanTile && w.term.value.toString() == '450',
       ));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Edit'));
@@ -82,7 +82,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.share_outlined));
       await tester.pumpAndSettle();
       expect(find.text('SHARE'), findsOneWidget);
-      expect(find.text('= 3,640'), findsOneWidget);
+      expect(find.text('TOTAL: 3,640'), findsOneWidget);
     });
 
     testWidgets('session is offered for restore after a restart',
@@ -108,12 +108,14 @@ void main() {
 
       await tester.tap(find.byType(PeekHandle));
       await tester.pumpAndSettle();
+      // The restored "2+2" shows as its two terms, totaling 4.
       expect(
         find.byWidgetPredicate(
-          (Widget w) => w is ScanTile && w.entry.result.toString() == '4',
+          (Widget w) => w is ScanTile && w.term.value.toString() == '2',
         ),
-        findsOneWidget,
+        findsNWidgets(2),
       );
+      expect(find.text('4'), findsWidgets);
     });
   });
 }
