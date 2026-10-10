@@ -73,7 +73,8 @@ final class BinaryOpNode extends AstNode {
     final Rational leftVal = left.evaluate();
 
     if (right is PercentNode) {
-      final Rational percentFraction = (right as PercentNode).rawValue / _oneHundred;
+      final Rational percentFraction =
+          (right as PercentNode).rawValue / _oneHundred;
 
       switch (op) {
         case BinaryOperator.add:

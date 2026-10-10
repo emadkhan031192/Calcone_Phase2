@@ -7,7 +7,8 @@ import 'package:rational/rational.dart';
 void main() {
   const ExpressionEvaluator evaluator = ExpressionEvaluator();
 
-  String evalToDisplay(String expr) => NumberFormatter.format(evaluator.evaluate(expr));
+  String evalToDisplay(String expr) =>
+      NumberFormatter.format(evaluator.evaluate(expr));
 
   group('basic arithmetic (spec §33)', () {
     test('2 + 2 = 4', () => expect(evalToDisplay('2+2'), '4'));
@@ -19,8 +20,10 @@ void main() {
   group('operator precedence', () {
     test('2 + 3 * 4 = 14', () => expect(evalToDisplay('2+3*4'), '14'));
     test('(2 + 3) * 4 = 20', () => expect(evalToDisplay('(2+3)*4'), '20'));
-    test('10 - 2 - 3 = 5 (left-associative)', () => expect(evalToDisplay('10-2-3'), '5'));
-    test('100 / 10 / 2 = 5 (left-associative)', () => expect(evalToDisplay('100/10/2'), '5'));
+    test('10 - 2 - 3 = 5 (left-associative)',
+        () => expect(evalToDisplay('10-2-3'), '5'));
+    test('100 / 10 / 2 = 5 (left-associative)',
+        () => expect(evalToDisplay('100/10/2'), '5'));
   });
 
   group('smart percentage (spec §6)', () {
@@ -74,21 +77,25 @@ void main() {
     });
 
     test('unmatched parentheses throws', () {
-      expect(() => evaluator.evaluate('(2+3'), throwsA(isA<CalculatorException>()));
+      expect(() => evaluator.evaluate('(2+3'),
+          throwsA(isA<CalculatorException>()));
     });
 
     test('malformed expression throws', () {
-      expect(() => evaluator.evaluate('2**3'), throwsA(isA<CalculatorException>()));
+      expect(() => evaluator.evaluate('2**3'),
+          throwsA(isA<CalculatorException>()));
     });
 
     test('trailing operator throws', () {
-      expect(() => evaluator.evaluate('5+'), throwsA(isA<CalculatorException>()));
+      expect(
+          () => evaluator.evaluate('5+'), throwsA(isA<CalculatorException>()));
     });
   });
 
   group('zero and edge cases', () {
     test('0 * 5 = 0', () => expect(evalToDisplay('0*5'), '0'));
     test('0 - 0 = 0', () => expect(evalToDisplay('0-0'), '0'));
-    test('very small decimal', () => expect(evalToDisplay('0.0001+0.0001'), '0.0002'));
+    test('very small decimal',
+        () => expect(evalToDisplay('0.0001+0.0001'), '0.0002'));
   });
 }

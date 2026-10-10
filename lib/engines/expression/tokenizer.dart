@@ -1,6 +1,15 @@
 import '../../core/errors/calculator_exception.dart';
 
-enum TokenType { number, plus, minus, multiply, divide, percent, lparen, rparen }
+enum TokenType {
+  number,
+  plus,
+  minus,
+  multiply,
+  divide,
+  percent,
+  lparen,
+  rparen
+}
 
 class Token {
   const Token(this.type, [this.value]);
@@ -65,7 +74,8 @@ class Tokenizer {
     return tokens;
   }
 
-  bool _isDigit(String char) => char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;
+  bool _isDigit(String char) =>
+      char.codeUnitAt(0) >= 48 && char.codeUnitAt(0) <= 57;
 
   Token _operatorToken(String char) {
     switch (char) {

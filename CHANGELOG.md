@@ -5,37 +5,57 @@ Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-### Added — Phase 2: Signature UX
+### Fixed — Phase 1 issues
+- Continuing from a result keeps exact precision: results are seeded back
+  as lossless expression text instead of display-formatted strings, so
+  `1/3 = × 3 =` gives `1` (spec §32).
+- Long-press `=` repeats with the original operand text, so
+  `500+10% =` repeats to `605` (spec §17); it only repeats immediately
+  after an evaluation, so a half-typed expression is never clobbered, and
+  falls back to a normal evaluation when there is nothing to repeat.
+- Live result preview while typing (as the code already promised).
+- Smart parenthesis key: one tap inserts `(` or `)` by context; the
+  hidden long-press for `)` is gone.
+- Backspace after `=` restores the exact result for editing instead of
+  wiping it.
+- Tests for long-press repeat (including the smart-percent case),
+  precision continuation, smart paren, backspace-edit, and the preview
+  helper.
+- Removed unused dependencies (`intl`, `path`, `cupertino_icons`,
+  `sqflite`); kept `share_plus` and `shared_preferences`.
+- CI now fails on unformatted code (`dart format --set-exit-if-changed`)
+  instead of silently reformatting; Android launcher label set to
+  "Calcone"; app renamed to the user's "Calcone" spelling.
 
-- `ExpressionTerm` model and `ExpressionDecomposer`: splits a chained
-  addition/subtraction expression into editable Quick Scan cells, with
-  correct handling of unary minus, parentheses, and nested `*`/`/`.
-  Deliberately disables itself for any expression containing `%`, since
-  a context-aware percent depends on everything to its left — decomposing
-  it into independent cells would silently produce a wrong total.
-- `CalculatorEngine.editTerm` / `deleteTerm`: edit or remove one Quick Scan
-  cell and recalculate the total in place (spec §9, acceptance test §45).
-- `CalculatorSnapshot` + `CalculatorEngine.snapshot()` / `restore()`: the
-  mechanism behind Undo (spec §18), used by Quick Scan delete and by the
-  keypad's AC/C buttons.
-- `QuickScanSheet`: the swipe-up grid — adaptive `GridView`, automatic
-  grouping into fours with subtotals past 8 entries (spec §10), tap/
-  long-press → Edit/Delete/Copy/Save action sheet.
-- Gestures on the home screen: tap or swipe-left on the result to copy,
-  swipe-up to open Quick Scan, swipe-right shows an honest "coming in
-  Phase 3" notice rather than a fake share sheet.
-- `SessionPersistenceService` (SharedPreferences-backed) and `SessionGate`:
-  auto-saves the in-progress calculation after every input and offers
-  "Continue previous calculation? / Start New" on the next launch
-  (spec §19).
-- `SavedNumbersService`: persists values from Quick Scan's "Save" action
-  (spec §27); a browsing UI for them is a Phase 4 deliverable.
-- `CalculationEntry.toJson()` / `fromJson()`, using numerator/denominator
-  strings rather than decimal-string parsing, so a saved session never
-  loses precision on a non-terminating value.
-- Unit tests for the term decomposer, the new engine methods (edit/
-  delete/undo), `CalculationEntry` JSON round-tripping, and session
-  save/load/clear.
+### Added — Phase 2: Signature UX
+- `QuickScanSheet`: swipe up from the peek handle (or tap it) to see the
+  session tape as an adaptive grid with a running total; past 12 entries
+  it groups into labelled fours with subtotals (spec §8–§11).
+- Tap a value for Edit / Delete / Copy; long-press for a tiny menu
+  (Edit / Delete / Copy / Save). Editing re-evaluates the entry and the
+  total updates automatically (spec §9). The tape stores raw expressions
+  so edits re-parse exactly.
+- Gestures (spec §17): tap result to copy, long-press for Copy / Share /
+  Save / Show Steps, swipe left to copy, swipe right to share; swipes
+  yield to scrolling when the result overflows.
+- `StepExplainer`: real step-by-step breakdowns derived from the AST
+  evaluation order (spec §25); hidden when not safely explainable.
+- Undo (spec §18): delete, edit, and clear actions post an undo request;
+  a small snackbar with Undo, no permanent chrome.
+- `SessionService` (shared_preferences, on-device only): the tape and
+  in-progress expression auto-save (debounced); relaunching offers
+  "Continue previous calculation?" (spec §19). Saved numbers (spec §27)
+  with a browsing dialog in Quick Scan.
+- Widget tests walking the spec §45 acceptance flow (evaluate → Quick
+  Scan → edit 450→540 → total updates → share sheet; session restore
+  after restart).
+
+### Added — Phase 3: Sharing
+- `SharePayload` / `ShareCard` / share sheet (spec §12–§14): a clean
+  calculation card (no keypad) shared as an image or text through
+  Android's native share sheet; whole-calculation sharing with total
+  from the Quick Scan header. Image capture falls back to text so
+  sharing never dead-ends.
 
 ### Added — Phase 1: Foundation
 

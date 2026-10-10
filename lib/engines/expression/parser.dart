@@ -35,7 +35,8 @@ class Parser {
 
   AstNode _parseExpression() {
     AstNode node = _parseTerm();
-    while (_current?.type == TokenType.plus || _current?.type == TokenType.minus) {
+    while (
+        _current?.type == TokenType.plus || _current?.type == TokenType.minus) {
       final BinaryOperator op = _current!.type == TokenType.plus
           ? BinaryOperator.add
           : BinaryOperator.subtract;
@@ -48,7 +49,8 @@ class Parser {
 
   AstNode _parseTerm() {
     AstNode node = _parseUnary();
-    while (_current?.type == TokenType.multiply || _current?.type == TokenType.divide) {
+    while (_current?.type == TokenType.multiply ||
+        _current?.type == TokenType.divide) {
       final BinaryOperator op = _current!.type == TokenType.multiply
           ? BinaryOperator.multiply
           : BinaryOperator.divide;

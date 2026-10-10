@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// CalcOne's visual language: calm, premium, mathematical.
+/// Calcone's visual language: calm, premium, mathematical.
 ///
 /// Deliberately restrained — one accent color, generous spacing, minimal
 /// borders/shadows, no gradients. See spec §28.
@@ -100,7 +100,8 @@ abstract final class AppTheme {
 
   /// Keypad button colors, split by semantic role so features/basic doesn't
   /// need to know about the color scheme's internal naming.
-  static Color numberKeyColor(ColorScheme scheme) => scheme.surfaceContainerHigh;
+  static Color numberKeyColor(ColorScheme scheme) =>
+      scheme.surfaceContainerHigh;
   static Color operatorKeyColor(ColorScheme scheme) => scheme.primaryContainer;
   static Color equalsKeyColor(ColorScheme scheme) => scheme.primary;
   static Color utilityKeyColor(ColorScheme scheme) => scheme.surfaceContainer;

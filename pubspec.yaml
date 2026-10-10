@@ -16,22 +16,14 @@ dependencies:
   decimal: ^2.3.3
   rational: ^2.2.3
 
-  # Formatting (thousands separators, locale-aware numbers).
-  intl: ^0.19.0
-
-  # Local persistence for session/history/saved numbers.
+  # Local persistence for the session tape and saved numbers.
   shared_preferences: ^2.2.3
-  sqflite: ^2.3.3
-  path: ^1.9.0
 
   # State management — kept intentionally simple.
   flutter_riverpod: ^2.5.1
 
-  # Sharing (Phase 3, scaffolded now so the dependency is in place).
+  # Sharing (result cards, calculation/session text via the native sheet).
   share_plus: ^9.0.0
-
-  # Icons.
-  cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
