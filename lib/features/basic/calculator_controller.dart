@@ -135,10 +135,12 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
   void clearCurrent() {
     final String expr = _engine.rawExpression;
     _engine.clearCurrent();
-    state = CalculatorUiState(
+    state = state.copyWith(
       expression: '',
       resultPreview: '0',
       tape: _engine.tape,
+      clearError: true,
+      justEvaluated: false,
     );
     if (expr.isNotEmpty) {
       _pushUndo('Input cleared', () => _engine.restoreExpression(expr));
@@ -150,7 +152,13 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     final String expr = _engine.rawExpression;
     final List<CalculationEntry> oldTape = List.of(_engine.tape);
     _engine.clearAll();
-    state = CalculatorUiState.initial();
+    state = state.copyWith(
+      expression: '',
+      resultPreview: '0',
+      tape: _engine.tape,
+      clearError: true,
+      justEvaluated: false,
+    );
     if (expr.isNotEmpty || oldTape.isNotEmpty) {
       _pushUndo('Cleared', () => _engine.restoreSession(oldTape, expr));
     }
