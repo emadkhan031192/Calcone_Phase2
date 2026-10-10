@@ -7,6 +7,7 @@ import '../../core/errors/calculator_exception.dart';
 import '../../core/utils/number_formatter.dart';
 import '../../engines/calculator/calculator_engine.dart';
 import '../../engines/decomposition/expression_decomposer.dart';
+import '../../engines/expression/expression_evaluator.dart';
 import '../../engines/steps/step_explainer.dart';
 import '../../models/calculation_entry.dart';
 import '../../services/session_service.dart';
@@ -165,6 +166,23 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     if (terms == null || oldExpr.isEmpty) return;
     final bool wasEvaluated = _engine.justEvaluated;
     final String rebuilt = transform(terms);
+    if (rebuilt.trim().isEmpty) {
+      _pushUndo(undoLabel, () {
+        if (wasEvaluated) {
+          _syncEvaluated(_engine.reevaluateLast(oldExpr));
+        } else {
+          _engine.restoreExpression(oldExpr);
+          _syncLivePreview();
+        }
+      });
+      _engine.restoreExpression('');
+      _syncLivePreview();
+      _schedulePersist();
+      return;
+    }
+    // Validate before committing: a bad rebuild throws here, so the edit
+    // dialog can show the message with nothing pushed to the undo stack.
+    const ExpressionEvaluator().evaluate(rebuilt);
     _pushUndo(undoLabel, () {
       if (wasEvaluated) {
         _syncEvaluated(_engine.reevaluateLast(oldExpr));
@@ -173,12 +191,6 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
         _syncLivePreview();
       }
     });
-    if (rebuilt.trim().isEmpty) {
-      _engine.restoreExpression('');
-      _syncLivePreview();
-      _schedulePersist();
-      return;
-    }
     if (wasEvaluated) {
       _syncEvaluated(_engine.reevaluateLast(rebuilt));
     } else {
