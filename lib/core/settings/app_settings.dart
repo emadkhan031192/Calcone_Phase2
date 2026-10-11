@@ -10,7 +10,7 @@ class AppSettings {
   const AppSettings({
     this.themeMode = ThemeMode.system,
     this.language = 'en',
-    this.fontSize = 1,
+    this.fontSize = 0,
     this.fontWeight = 2,
     this.haptics = true,
     this.showChipOperators = true,
@@ -80,7 +80,7 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
               orElse: () => ThemeMode.system,
             ),
       language: prefs.getString(_kLang) ?? 'en',
-      fontSize: prefs.getInt(_kFontSize) ?? 1,
+      fontSize: prefs.getInt(_kFontSize) ?? 0,
       fontWeight: prefs.getInt(_kFontWeight) ?? 2,
       haptics: prefs.getBool(_kHaptics) ?? true,
       showChipOperators: prefs.getBool(_kChipOps) ?? true,

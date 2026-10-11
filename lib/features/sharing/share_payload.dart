@@ -9,6 +9,7 @@ class SharePayload {
     this.expression,
     this.entryCount,
     this.displayTitle,
+    this.steps,
   });
 
   final String title;
@@ -26,12 +27,17 @@ class SharePayload {
   /// card and as the first line of the text share.
   final String? displayTitle;
 
+  /// Step-by-step lines with running balances (e.g. "1. +75 = 120").
+  /// When present, the text share uses these instead of [rows].
+  final List<String>? steps;
+
   SharePayload withTitle(String? title) => SharePayload(
         title: this.title,
         rows: rows,
         total: total,
         expression: expression,
         entryCount: entryCount,
+        steps: steps,
         displayTitle:
             title == null || title.trim().isEmpty ? null : title.trim(),
       );
@@ -43,7 +49,7 @@ class SharePayload {
     final StringBuffer sb = StringBuffer()
       ..writeln(effectiveTitle)
       ..writeln();
-    for (final String row in rows) {
+    for (final String row in steps ?? rows) {
       sb.writeln(row);
     }
     if (total != null) {

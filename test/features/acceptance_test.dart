@@ -83,12 +83,14 @@ void main() {
       // 7. Total automatically updates.
       expect(find.text('3,640'), findsWidgets);
 
-      // 8-9. Share opens the clean card sheet (no keypad).
-      await tester.tap(find.byIcon(Icons.share_outlined));
+      // 8-9. Steps/share opens the clean card sheet (no keypad).
+      await tester.tap(find.byIcon(Icons.format_list_numbered_rounded));
       await tester.pumpAndSettle();
       expect(find.text('SHARE'), findsOneWidget);
       // The branded card shows "= " in blue next to the big total.
       expect(find.text('3,640'), findsWidgets);
+      // The steps ledger is shown and shared as text.
+      expect(find.text('1. 180 = 180'), findsOneWidget);
     });
 
     testWidgets('session is offered for restore after a restart',

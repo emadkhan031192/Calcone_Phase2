@@ -1,0 +1,15 @@
+name: media_share
+description: Shares PNG images via the Android MediaStore (no FileProvider).
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+  flutter: ">=3.24.0"
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.example.media_share
+        pluginClass: MediaSharePlugin

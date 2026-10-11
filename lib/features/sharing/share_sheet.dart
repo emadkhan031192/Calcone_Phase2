@@ -1,11 +1,11 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:media_share/media_share.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -72,6 +72,59 @@ class _ShareSheetBodyState extends ConsumerState<_ShareSheetBody> {
                 child: ShareCard(payload: _titled),
               ),
             ),
+            // Steps preview: the running ledger — this is what the
+            // Text / Copy actions share.
+            if (_titled.steps != null && _titled.steps!.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  strings.steps.toUpperCase(),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                        color: p.muted,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 180),
+                decoration: BoxDecoration(
+                  color: p.keyNumber,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: p.cardBorder),
+                ),
+                child: SingleChildScrollView(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      for (int i = 0;
+                          i < _titled.steps!.length;
+                          i++) ...<Widget>[
+                        if (i > 0)
+                          Divider(
+                              height: 12, thickness: 1, color: p.cardBorder),
+                        Text(
+                          _titled.steps![i],
+                          style: TextStyle(
+                            fontFamily: 'Outfit',
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            fontFeatures: const <ui.FontFeature>[
+                              ui.FontFeature.tabularFigures(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
             if (_busy)
               const Padding(
@@ -198,20 +251,10 @@ class _ShareSheetBodyState extends ConsumerState<_ShareSheetBody> {
       final Uint8List bytes = byteData.buffer.asUint8List();
       if (bytes.isEmpty) throw StateError('empty capture');
 
-      // XFile.fromData carries no path, which the Android share sheet
-      // cannot resolve — write a real temp file instead.
-      final Directory dir = await getTemporaryDirectory();
-      final File file = File('${dir.path}/calcone_share.png');
-      await file.writeAsBytes(bytes, flush: true);
-      if (!await file.exists()) throw StateError('temp file missing');
-      if (await file.length() == 0) throw StateError('temp file empty');
-
-      await Share.shareXFiles(
-        <XFile>[
-          XFile(file.path, mimeType: 'image/png', name: 'calcone_share.png')
-        ],
-        text: _titled.text,
-      );
+      // MediaStore share (local plugin): no FileProvider, no temp file.
+      // share_plus file sharing crashes on real devices because R8
+      // obfuscates androidx.core.content.FileProvider in release builds.
+      await MediaShare.shareImage(bytes, text: _titled.text);
     } catch (e) {
       // Sharing never dead-ends: report the cause (needed for diagnosis
       // on real devices), then fall back to text.

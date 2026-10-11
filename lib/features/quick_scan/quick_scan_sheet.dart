@@ -80,8 +80,8 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                 _CountChip(count: terms?.length ?? 0),
                 const Spacer(),
                 _HeaderButton(
-                  icon: Icons.share_outlined,
-                  tooltip: strings.shareCalculation,
+                  icon: Icons.format_list_numbered_rounded,
+                  tooltip: strings.steps,
                   background: p.tapePillBg,
                   foreground: p.tapePillText,
                   onPressed: terms == null
@@ -172,7 +172,6 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
     AppSettings settings,
   ) {
     final List<Widget> slivers = <Widget>[];
-    final TextTheme textTheme = Theme.of(context).textTheme;
     Rational running = Rational.zero;
     for (int g = 0; g * _groupSize < terms.length; g++) {
       final int start = g * _groupSize;
@@ -195,29 +194,22 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: <Widget>[
-                    Text(
-                      '${start + 1}–$end',
-                      style: textTheme.labelSmall?.copyWith(
-                        color: p.muted,
-                        fontWeight: FontWeight.w600,
-                      ),
+                // Subtotal only — the "1–4" range labels were removed
+                // per feedback; each row already shows its entry number.
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    NumberFormatter.format(subtotal),
+                    style: TextStyle(
+                      fontFamily: 'Outfit',
+                      fontSize: rs(settings, 20),
+                      fontWeight: FontWeight.w700,
+                      color: p.groupSubtotal(g),
+                      fontFeatures: const <FontFeature>[
+                        FontFeature.tabularFigures(),
+                      ],
                     ),
-                    Text(
-                      NumberFormatter.format(subtotal),
-                      style: TextStyle(
-                        fontFamily: 'Outfit',
-                        fontSize: rs(settings, 20),
-                        fontWeight: FontWeight.w700,
-                        color: p.groupSubtotal(g),
-                        fontFeatures: const <FontFeature>[
-                          FontFeature.tabularFigures(),
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Column(

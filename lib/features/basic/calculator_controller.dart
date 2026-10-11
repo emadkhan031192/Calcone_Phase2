@@ -423,7 +423,8 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
   }
 
   /// Payload for sharing the active calculation: one row per term,
-  /// then the total.
+  /// then the total. [SharePayload.steps] carries the running-balance
+  /// ledger lines used for the text share.
   SharePayload calculationSharePayload() {
     final List<ExpressionTerm>? terms = quickScanTerms;
     if (terms == null) {
@@ -431,11 +432,21 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     }
     String expr = terms.map((ExpressionTerm t) => t.source).join();
     if (expr.startsWith('+')) expr = expr.substring(1);
+    Rational running = Rational.zero;
+    final List<String> steps = <String>[];
+    for (int i = 0; i < terms.length; i++) {
+      final ExpressionTerm t = terms[i];
+      running += t.value;
+      final String magnitude = NumberFormatter.format(t.value.abs());
+      final String signed = i == 0 ? magnitude : '${t.sign}$magnitude';
+      steps.add('${i + 1}. $signed = ${NumberFormatter.format(running)}');
+    }
     return SharePayload(
       title: 'CALCULATION',
       rows: <String>[
         for (final ExpressionTerm t in terms) _termShareLine(t),
       ],
+      steps: steps,
       total: '= ${NumberFormatter.format(quickScanTotal!)}',
       expression: expr,
       entryCount: terms.length,

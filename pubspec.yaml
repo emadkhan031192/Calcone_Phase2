@@ -25,9 +25,11 @@ dependencies:
   # Sharing (result cards, calculation/session text via the native sheet).
   share_plus: ^9.0.0
 
-  # Temporary file for the share-as-image PNG (XFile.fromData has no path,
-  # which the Android share sheet cannot handle).
-  path_provider: ^2.1.4
+  # Image sharing via the MediaStore (local plugin): share_plus file
+  # sharing goes through androidx FileProvider, which R8 obfuscates in
+  # release builds and crashes on real devices.
+  media_share:
+    path: plugins/media_share
 
 dev_dependencies:
   flutter_test:
