@@ -244,27 +244,18 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
         behavior: HitTestBehavior.opaque,
         onTap: () => showQuickScanSheet(context),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Icon(
-                Icons.keyboard_arrow_up_rounded,
-                size: 16,
-                color: p.muted,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                text,
-                style: TextStyle(
-                  fontFamily: 'Outfit',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: p.muted,
-                ),
-              ),
-            ],
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 24),
+          // Single wrapping Text — a Row(min) with a long Text does not
+          // wrap under loose constraints and overflows.
+          child: Text(
+            '↑ $text',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: p.muted,
+            ),
           ),
         ),
       ),
@@ -296,14 +287,19 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
               color: p.topBarButtonIcon,
             ),
             const SizedBox(width: 6),
-            // Always bilingual, per the request.
-            Text(
-              'Share · شیئر کریں',
-              style: TextStyle(
-                fontFamily: 'Outfit',
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: p.topBarButtonIcon,
+            // Always bilingual, per the request. Flexible so a wide
+            // fallback font ellipsizes instead of overflowing the Row.
+            Flexible(
+              child: Text(
+                'Share · شیئر کریں',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Outfit',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: p.topBarButtonIcon,
+                ),
               ),
             ),
           ],

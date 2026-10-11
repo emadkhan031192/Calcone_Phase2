@@ -52,7 +52,8 @@ void main() {
       expect(find.text('3,550'), findsWidgets);
 
       // 3. Opens Quick Scan via the peek handle.
-      await tester.drag(find.byType(CalculationDisplay), const Offset(0, -300));
+      await tester.fling(
+          find.byType(CalculationDisplay), const Offset(0, -500), 1000);
       await tester.pumpAndSettle();
       expect(find.text('TAPE'), findsOneWidget);
 
@@ -111,7 +112,8 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
 
-      await tester.drag(find.byType(CalculationDisplay), const Offset(0, -300));
+      await tester.fling(
+          find.byType(CalculationDisplay), const Offset(0, -500), 1000);
       await tester.pumpAndSettle();
       // The restored "2+2" shows as its two terms, totaling 4.
       expect(
