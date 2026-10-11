@@ -57,28 +57,31 @@ class CalconeLogo extends StatelessWidget {
     if (!showWordmark) return mark;
 
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         mark,
         const SizedBox(width: 10),
-        RichText(
-          text: TextSpan(
-            style: TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: squareSize * 1.35,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.5,
+        Flexible(
+          child: RichText(
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            text: TextSpan(
+              style: TextStyle(
+                fontFamily: 'Outfit',
+                fontSize: squareSize * 1.35,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.5,
+              ),
+              children: <TextSpan>[
+                TextSpan(
+                  text: 'Calc',
+                  style: TextStyle(color: textColor ?? scheme.onSurface),
+                ),
+                TextSpan(
+                  text: 'one',
+                  style: TextStyle(color: accentColor ?? scheme.primary),
+                ),
+              ],
             ),
-            children: <TextSpan>[
-              TextSpan(
-                text: 'Calc',
-                style: TextStyle(color: textColor ?? scheme.onSurface),
-              ),
-              TextSpan(
-                text: 'one',
-                style: TextStyle(color: accentColor ?? scheme.primary),
-              ),
-            ],
           ),
         ),
       ],

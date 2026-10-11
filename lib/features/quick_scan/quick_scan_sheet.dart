@@ -319,18 +319,27 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
     final int index = _selectedIndex!;
     final TextTheme textTheme = Theme.of(context).textTheme;
     Widget action(String label, IconData icon, VoidCallback onTap) {
-      return InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(icon, size: 18, color: p.topBarButtonIcon),
-              const SizedBox(width: 6),
-              Text(label, style: textTheme.labelSmall),
-            ],
+      return Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(icon, size: 18, color: p.topBarButtonIcon),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: textTheme.labelSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -344,7 +353,6 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: <Widget>[
           action('Edit', Icons.edit_outlined, () => _editTerm(terms, index)),
           action('Delete', Icons.delete_outline, () {

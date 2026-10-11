@@ -80,8 +80,7 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
               padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
               child: Row(
                 children: <Widget>[
-                  const CalconeLogo(),
-                  const Spacer(),
+                  const Expanded(child: CalconeLogo()),
                   _TopBarButton(
                     icon: Icons.history_rounded,
                     tooltip: 'History',
