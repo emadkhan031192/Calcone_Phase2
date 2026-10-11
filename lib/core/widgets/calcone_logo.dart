@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 /// The Calcone brand mark: a 2x2 grid of rounded squares
 /// (blue, green, yellow, red) plus the wordmark — "Calc" in the text
 /// color, "one" in primary blue. All in Outfit.
+///
+/// The wordmark takes a flex share when the incoming width is finite
+/// (ellipsizing instead of overflowing); in unbounded contexts it sizes
+/// intrinsically, since flex under infinite constraints is an error.
 class CalconeLogo extends StatelessWidget {
   const CalconeLogo({
     super.key,
@@ -56,35 +60,42 @@ class CalconeLogo extends StatelessWidget {
 
     if (!showWordmark) return mark;
 
-    return Row(
-      children: <Widget>[
-        mark,
-        const SizedBox(width: 10),
-        Flexible(
-          child: RichText(
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            text: TextSpan(
-              style: TextStyle(
-                fontFamily: 'Outfit',
-                fontSize: squareSize * 1.35,
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.5,
-              ),
-              children: <TextSpan>[
-                TextSpan(
-                  text: 'Calc',
-                  style: TextStyle(color: textColor ?? scheme.onSurface),
-                ),
-                TextSpan(
-                  text: 'one',
-                  style: TextStyle(color: accentColor ?? scheme.primary),
-                ),
-              ],
-            ),
-          ),
+    final Widget wordmark = RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(
+        style: TextStyle(
+          fontFamily: 'Outfit',
+          fontSize: squareSize * 1.35,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
         ),
-      ],
+        children: <TextSpan>[
+          TextSpan(
+            text: 'Calc',
+            style: TextStyle(color: textColor ?? scheme.onSurface),
+          ),
+          TextSpan(
+            text: 'one',
+            style: TextStyle(color: accentColor ?? scheme.primary),
+          ),
+        ],
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        final Widget text = constraints.maxWidth.isFinite
+            ? Expanded(child: wordmark)
+            : wordmark;
+        return Row(
+          children: <Widget>[
+            mark,
+            const SizedBox(width: 10),
+            text,
+          ],
+        );
+      },
     );
   }
 }
