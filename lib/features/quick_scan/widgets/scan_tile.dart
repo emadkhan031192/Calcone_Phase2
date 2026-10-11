@@ -59,12 +59,11 @@ class ScanTile extends ConsumerWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: selected
-                ? palette.chipGroupColor(groupIndex).withAlpha(64)
-                : palette.chipGroupColor(groupIndex),
+                ? palette.groupBg(groupIndex).withAlpha(64)
+                : palette.groupBg(groupIndex),
             borderRadius: BorderRadius.circular(CalcDims.chipRadius),
             border: selected
-                ? Border.all(
-                    color: palette.chipGroupColor(groupIndex), width: 2)
+                ? Border.all(color: palette.groupSubtotal(groupIndex), width: 2)
                 : null,
           ),
           child: Padding(
@@ -76,9 +75,9 @@ class ScanTile extends ConsumerWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: 'Outfit',
-                fontSize: rs(settings, CalcDims.chipFontSize),
+                fontSize: rs(settings, 22),
                 fontWeight: chipWeight(settings),
-                color: Colors.white,
+                color: palette.groupText(groupIndex),
                 fontFeatures: const <FontFeature>[
                   FontFeature.tabularFigures(),
                 ],
