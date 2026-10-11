@@ -85,6 +85,7 @@ class AppStrings {
       'shareTitle': 'Title (optional)',
       'shareTitleHint': 'e.g. Karyana Khata',
       'shareStrip': 'Share',
+      'swipeUpForTape': 'Swipe up for Tape',
       'errorPrefix': 'Error: ',
       'resultPrefix': 'Result: ',
       'madeWith': 'MADE WITH CALCONE',
@@ -162,6 +163,7 @@ class AppStrings {
       'shareTitle': 'عنوان (اختیاری)',
       'shareTitleHint': 'مثلاً کریانہ کھاتہ',
       'shareStrip': 'شیئر کریں',
+      'swipeUpForTape': 'ٹیپ کے لیے سوائپ کریں',
       'errorPrefix': 'خرابی: ',
       'resultPrefix': 'نتیجہ: ',
       'madeWith': 'MADE WITH CALCONE',
@@ -271,6 +273,7 @@ class AppStrings {
   String get shareTitle => _get('shareTitle');
   String get shareTitleHint => _get('shareTitleHint');
   String get shareStrip => _get('shareStrip');
+  String get swipeUpForTape => _get('swipeUpForTape');
   String get errorPrefix => _get('errorPrefix');
   String get resultPrefix => _get('resultPrefix');
   String get madeWith => _get('madeWith');

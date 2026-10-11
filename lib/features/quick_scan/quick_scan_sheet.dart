@@ -12,7 +12,7 @@ import '../../engines/decomposition/expression_decomposer.dart';
 import '../../features/basic/calculator_controller.dart';
 import '../../features/basic/widgets/undo_snackbar.dart';
 import '../../features/sharing/share_sheet.dart';
-import 'widgets/scan_tile.dart';
+import 'widgets/ledger_row.dart';
 
 /// Opens the Tape bottom sheet.
 Future<void> showQuickScanSheet(BuildContext context) {
@@ -161,8 +161,9 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
     );
   }
 
-  /// Entries in rows of 4; each group of 4 gets the next color in the
-  /// blue → green → yellow → red cycle, with its own subtotal.
+  /// Ledger entries: each group of 4 gets the next color in the
+  /// blue → green → yellow → red cycle, with its own subtotal. Every row
+  /// shows the entry number, the signed value, and the running balance.
   List<Widget> _groupedSlivers(
     List<ExpressionTerm> terms,
     CalculatorController controller,
@@ -172,6 +173,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
   ) {
     final List<Widget> slivers = <Widget>[];
     final TextTheme textTheme = Theme.of(context).textTheme;
+    Rational running = Rational.zero;
     for (int g = 0; g * _groupSize < terms.length; g++) {
       final int start = g * _groupSize;
       final int end = (start + _groupSize).clamp(0, terms.length);
@@ -180,6 +182,12 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
         Rational.zero,
         (Rational s, ExpressionTerm t) => s + t.value,
       );
+      // Running balances for this group's rows.
+      final List<Rational> balances = <Rational>[];
+      for (final ExpressionTerm t in group) {
+        running += t.value;
+        balances.add(running);
+      }
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
@@ -211,19 +219,13 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                GridView(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    mainAxisSpacing: CalcDims.keyGap,
-                    crossAxisSpacing: CalcDims.keyGap,
-                    mainAxisExtent: CalcDims.chipHeight,
-                  ),
+                const SizedBox(height: 4),
+                Column(
                   children: <Widget>[
-                    for (int i = 0; i < group.length; i++)
-                      _tile(
+                    for (int i = 0; i < group.length; i++) ...<Widget>[
+                      if (i > 0)
+                        Divider(height: 1, thickness: 1, color: p.cardBorder),
+                      _row(
                         context,
                         terms,
                         start + i,
@@ -232,7 +234,9 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                         p,
                         strings,
                         settings,
+                        balances[i],
                       ),
+                    ],
                   ],
                 ),
               ],
@@ -244,7 +248,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
     return slivers;
   }
 
-  Widget _tile(
+  Widget _row(
     BuildContext context,
     List<ExpressionTerm> terms,
     int index,
@@ -253,10 +257,13 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
     CalcPalette p,
     AppStrings strings,
     AppSettings settings,
+    Rational runningTotal,
   ) {
-    return ScanTile(
+    return LedgerRow(
       term: terms[index],
+      index: index,
       groupIndex: groupIndex,
+      runningTotal: runningTotal,
       palette: p,
       selected: _selectedIndex == index,
       showOperator: settings.showChipOperators,

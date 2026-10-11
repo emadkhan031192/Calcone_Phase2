@@ -44,7 +44,16 @@ flutter:
     - assets/formulas/
     - assets/fonts/
   fonts:
-    # Bundled Outfit (variable weight) — the app stays fully offline.
+    # Bundled Outfit as static weights (the variable font's default
+    # instance is Thin, which made every weight render thin) — the app
+    # stays fully offline.
     - family: Outfit
       fonts:
-        - asset: assets/fonts/Outfit.ttf
+        - asset: assets/fonts/Outfit-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Outfit-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Outfit-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Outfit-Bold.ttf
+          weight: 700
