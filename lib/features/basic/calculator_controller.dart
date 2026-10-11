@@ -254,6 +254,15 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     _syncLivePreview();
   }
 
+  /// Loads a past calculation's expression back into the display
+  /// (History). The live preview recalculates; nothing is added to the
+  /// tape until the user evaluates again.
+  void loadExpression(String rawExpression) {
+    _engine.restoreExpression(rawExpression);
+    _syncLivePreview();
+    _schedulePersist();
+  }
+
   void inputPercent() {
     _engine.inputPercent();
     _syncLivePreview();
@@ -409,22 +418,27 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
       title: 'CALCONE',
       rows: <String>[expr],
       total: '= ${state.resultPreview}',
+      expression: expr,
     );
   }
 
-  /// Payload for sharing the active calculation (spec §13): one row per
-  /// term, then the total.
+  /// Payload for sharing the active calculation: one row per term,
+  /// then the total.
   SharePayload calculationSharePayload() {
     final List<ExpressionTerm>? terms = quickScanTerms;
     if (terms == null) {
       return const SharePayload(title: 'CALCULATION', rows: <String>[]);
     }
+    String expr = terms.map((ExpressionTerm t) => t.source).join();
+    if (expr.startsWith('+')) expr = expr.substring(1);
     return SharePayload(
       title: 'CALCULATION',
       rows: <String>[
         for (final ExpressionTerm t in terms) _termShareLine(t),
       ],
-      total: 'TOTAL: ${NumberFormatter.format(quickScanTotal!)}',
+      total: '= ${NumberFormatter.format(quickScanTotal!)}',
+      expression: expr,
+      entryCount: terms.length,
     );
   }
 

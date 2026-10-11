@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rational/rational.dart';
 
 import '../../core/errors/calculator_exception.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/utils/number_formatter.dart';
 import '../../engines/decomposition/expression_decomposer.dart';
 import '../../features/basic/calculator_controller.dart';
@@ -11,16 +12,12 @@ import '../../features/basic/widgets/undo_snackbar.dart';
 import '../../features/sharing/share_sheet.dart';
 import 'widgets/scan_tile.dart';
 
-/// Opens the Quick Scan bottom sheet (spec §8–§11).
+/// Opens the Tape bottom sheet.
 Future<void> showQuickScanSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
     builder: (BuildContext ctx) => DraggableScrollableSheet(
       initialChildSize: 0.75,
       minChildSize: 0.45,
@@ -32,8 +29,6 @@ Future<void> showQuickScanSheet(BuildContext context) {
   );
 }
 
-/// Terms beyond this count switch to the grouped view (spec §10).
-const int _groupThreshold = 12;
 const int _groupSize = 4;
 
 class QuickScanSheet extends ConsumerStatefulWidget {
@@ -56,52 +51,32 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
         ref.read(calculatorControllerProvider.notifier);
     // Rebuild when the calculation changes.
     ref.watch(calculatorControllerProvider);
-    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final CalcPalette p = Theme.of(context).extension<CalcPalette>()!;
     final TextTheme textTheme = Theme.of(context).textTheme;
     final List<ExpressionTerm>? terms = controller.quickScanTerms;
     final Rational? total = controller.quickScanTotal;
 
     return Column(
       children: <Widget>[
-        const SizedBox(height: 8),
-        Container(
-          width: 40,
-          height: 4,
-          decoration: BoxDecoration(
-            color: scheme.onSurfaceVariant.withOpacity(0.4),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+          padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
           child: Row(
             children: <Widget>[
-              Expanded(
-                child: Row(
-                  children: <Widget>[
-                    Flexible(
-                      child: Text(
-                        'QUICK SCAN',
-                        overflow: TextOverflow.ellipsis,
-                        style: textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${terms?.length ?? 0}',
-                      style: textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
+              Text(
+                'TAPE',
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.5,
                 ),
               ),
-              IconButton(
+              const SizedBox(width: 8),
+              _CountChip(count: terms?.length ?? 0),
+              const Spacer(),
+              _HeaderButton(
+                icon: Icons.share_outlined,
                 tooltip: 'Share calculation',
-                icon: const Icon(Icons.share_outlined),
+                background: p.tapePillBg,
+                foreground: p.tapePillText,
                 onPressed: terms == null
                     ? null
                     : () => showShareSheet(
@@ -109,14 +84,20 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                           controller.calculationSharePayload(),
                         ),
               ),
-              IconButton(
+              const SizedBox(width: 8),
+              _HeaderButton(
+                icon: Icons.bookmark_border_rounded,
                 tooltip: 'Saved numbers',
-                icon: const Icon(Icons.bookmark_border_rounded),
+                background: p.keyNumber,
+                foreground: p.topBarButtonIcon,
                 onPressed: _showSavedNumbers,
               ),
-              IconButton(
-                tooltip: 'Clear',
-                icon: const Icon(Icons.delete_sweep_outlined),
+              const SizedBox(width: 8),
+              _HeaderButton(
+                icon: Icons.delete_sweep_outlined,
+                tooltip: 'Clear tape',
+                background: p.keyClear,
+                foreground: p.keyClearText,
                 onPressed: terms == null
                     ? null
                     : () {
@@ -130,42 +111,23 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
         ),
         Expanded(
           child: terms == null
-              ? _emptyState(scheme, textTheme)
+              ? _emptyState(p, textTheme)
               : CustomScrollView(
                   controller: widget.scrollController,
                   slivers: <Widget>[
-                    if (terms.length <= _groupThreshold)
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                        sliver: SliverGrid(
-                          gridDelegate:
-                              const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 130,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            childAspectRatio: 1.15,
-                          ),
-                          delegate: SliverChildBuilderDelegate(
-                            (BuildContext ctx, int i) =>
-                                _tile(ctx, terms, i, controller),
-                            childCount: terms.length,
-                          ),
-                        ),
-                      )
-                    else
-                      ..._groupedSlivers(terms, controller),
+                    ..._groupedSlivers(terms, controller, p),
                     const SliverToBoxAdapter(child: SizedBox(height: 8)),
                   ],
                 ),
         ),
         if (_selectedIndex != null && terms != null)
-          _selectionBar(controller, terms, scheme),
-        _totalBar(total, scheme, textTheme),
+          _selectionBar(controller, terms, p),
+        _totalCard(total, p),
       ],
     );
   }
 
-  Widget _emptyState(ColorScheme scheme, TextTheme textTheme) {
+  Widget _emptyState(CalcPalette p, TextTheme textTheme) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -173,7 +135,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
           Icon(
             Icons.calculate_outlined,
             size: 48,
-            color: scheme.onSurfaceVariant.withOpacity(0.5),
+            color: p.muted.withOpacity(0.5),
           ),
           const SizedBox(height: 12),
           Text(
@@ -184,24 +146,22 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
           Text(
             'Calculations you make will appear here\nfor fast visual scanning.',
             textAlign: TextAlign.center,
-            style: textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
+            style: textTheme.bodyMedium?.copyWith(color: p.muted),
           ),
         ],
       ),
     );
   }
 
-  /// Long term lists are grouped visually with subtotals (spec §10)
-  /// while every value stays tappable.
+  /// Entries in rows of 4; each group of 4 gets the next color in the
+  /// blue → green → yellow → red cycle, with its own subtotal.
   List<Widget> _groupedSlivers(
     List<ExpressionTerm> terms,
     CalculatorController controller,
+    CalcPalette p,
   ) {
     final List<Widget> slivers = <Widget>[];
     final TextTheme textTheme = Theme.of(context).textTheme;
-    final ColorScheme scheme = Theme.of(context).colorScheme;
     for (int g = 0; g * _groupSize < terms.length; g++) {
       final int start = g * _groupSize;
       final int end = (start + _groupSize).clamp(0, terms.length);
@@ -213,7 +173,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
       slivers.add(
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
@@ -223,31 +183,35 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                     Text(
                       '${start + 1}–$end',
                       style: textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                        color: p.muted,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     Text(
                       NumberFormatter.format(subtotal),
-                      style: textTheme.labelSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: p.groupSubtotal(g),
+                        fontFeatures: const <FontFeature>[
+                          FontFeature.tabularFigures(),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 GridView.count(
                   crossAxisCount: 4,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 8,
-                  crossAxisSpacing: 8,
-                  childAspectRatio: 1.1,
+                  mainAxisSpacing: CalcDims.keyGap,
+                  crossAxisSpacing: CalcDims.keyGap,
+                  mainAxisExtent: CalcDims.chipHeight,
                   children: <Widget>[
                     for (int i = 0; i < group.length; i++)
-                      _tile(context, terms, start + i, controller,
-                          compact: true),
+                      _tile(context, terms, start + i, controller, g, p),
                   ],
                 ),
               ],
@@ -263,12 +227,14 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
     BuildContext context,
     List<ExpressionTerm> terms,
     int index,
-    CalculatorController controller, {
-    bool compact = false,
-  }) {
+    CalculatorController controller,
+    int groupIndex,
+    CalcPalette p,
+  ) {
     return ScanTile(
       term: terms[index],
-      compact: compact,
+      groupIndex: groupIndex,
+      palette: p,
       selected: _selectedIndex == index,
       onTap: () => setState(() {
         _selectedIndex = _selectedIndex == index ? null : index;
@@ -346,73 +312,101 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
   Widget _selectionBar(
     CalculatorController controller,
     List<ExpressionTerm> terms,
-    ColorScheme scheme,
+    CalcPalette p,
   ) {
     final int index = _selectedIndex!;
-    if (index < 0 || index >= terms.length) {
-      _selectedIndex = null;
-      return const SizedBox.shrink();
+    final TextTheme textTheme = Theme.of(context).textTheme;
+    Widget action(String label, IconData icon, VoidCallback onTap) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(icon, size: 18, color: p.topBarButtonIcon),
+              const SizedBox(width: 6),
+              Text(label, style: textTheme.labelSmall),
+            ],
+          ),
+        ),
+      );
     }
-    final ExpressionTerm term = terms[index];
+
     return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: scheme.outlineVariant)),
+        color: p.keyNumber,
+        borderRadius: BorderRadius.circular(16),
       ),
-      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: <Widget>[
-          TextButton.icon(
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text('Edit'),
-            onPressed: () => _editTerm(terms, index),
-          ),
-          TextButton.icon(
-            icon: const Icon(Icons.delete_outline_rounded, size: 18),
-            label: const Text('Delete'),
-            onPressed: () {
+          action('Edit', Icons.edit_outlined, () => _editTerm(terms, index)),
+          action('Delete', Icons.delete_outline, () {
+            setState(() => _selectedIndex = null);
+            controller.deleteQuickScanTerm(index);
+          }),
+          action('Copy', Icons.copy_outlined, () {
+            _copyText(NumberFormatter.format(terms[index].value), 'Copied');
+            setState(() => _selectedIndex = null);
+          }),
+          action('Save', Icons.bookmark_border_rounded, () async {
+            await controller.saveQuickScanTerm(index);
+            if (mounted) {
+              _copyText('', 'Saved');
               setState(() => _selectedIndex = null);
-              controller.deleteQuickScanTerm(index);
-            },
-          ),
-          TextButton.icon(
-            icon: const Icon(Icons.copy_outlined, size: 18),
-            label: const Text('Copy'),
-            onPressed: () => _copyText(
-              NumberFormatter.format(term.value),
-              'Copied',
-            ),
-          ),
+            }
+          }),
         ],
       ),
     );
   }
 
-  Widget _totalBar(
-    Rational? total,
-    ColorScheme scheme,
-    TextTheme textTheme,
-  ) {
+  /// The TOTAL footer card: blue gradient, white text, 44sp total.
+  Widget _totalCard(Rational? total, CalcPalette p) {
     return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: scheme.outlineVariant)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[p.equalsStart, p.equalsEnd],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: p.equalsEnd.withAlpha(82),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: <Widget>[
           Text(
             'TOTAL',
-            style: textTheme.labelSmall?.copyWith(
-              color: scheme.onSurfaceVariant,
+            style: TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 15,
               fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
+              letterSpacing: 2,
+              color: p.equalsText,
             ),
           ),
           Text(
             total == null ? '—' : NumberFormatter.format(total),
-            style: textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w700,
+            style: TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: CalcDims.tapeTotalFontSize,
+              fontWeight: FontWeight.w500,
+              letterSpacing: -1,
+              color: p.equalsText,
+              fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
             ),
           ),
         ],
@@ -486,7 +480,78 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
   }
 }
 
-/// Edit dialog for one Quick Scan term (spec §9).
+/// Small "TAPE" count chip in the sheet header.
+class _CountChip extends StatelessWidget {
+  const _CountChip({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        '$count',
+        style: TextStyle(
+          fontFamily: 'Outfit',
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+          color: scheme.primary,
+          fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+        ),
+      ),
+    );
+  }
+}
+
+/// One 48dp tonal icon button in the sheet header.
+class _HeaderButton extends StatelessWidget {
+  const _HeaderButton({
+    required this.icon,
+    required this.tooltip,
+    required this.background,
+    required this.foreground,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final Color background;
+  final Color foreground;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: tooltip,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: tooltip,
+        child: Material(
+          color: background.withOpacity(onPressed == null ? 0.4 : 1),
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onPressed,
+            child: SizedBox(
+              width: CalcDims.minTouchTarget,
+              height: CalcDims.minTouchTarget,
+              child: Icon(icon, size: 22, color: foreground),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Edit dialog for one Tape term.
 ///
 /// Owns its [TextEditingController] so disposal happens with the dialog's
 /// own lifecycle — disposing it from the caller races the dialog route's

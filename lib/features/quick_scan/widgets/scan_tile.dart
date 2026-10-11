@@ -1,73 +1,71 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/number_formatter.dart';
 import '../../../engines/decomposition/expression_decomposer.dart';
 
-/// One term in the Quick Scan grid (spec §8): the term's source small,
-/// its value prominent. Deliberately card-free — no borders unless
-/// selected.
+/// One term in the Tape grid: the number shown once, centered, in the
+/// group's color. 56dp tall, 20dp radius.
 class ScanTile extends StatelessWidget {
   const ScanTile({
     super.key,
     required this.term,
+    required this.groupIndex,
+    required this.palette,
     required this.selected,
     required this.onTap,
     required this.onLongPressStart,
-    this.compact = false,
   });
 
   final ExpressionTerm term;
+  final int groupIndex;
+  final CalcPalette palette;
   final bool selected;
   final VoidCallback onTap;
   final void Function(LongPressStartDetails details) onLongPressStart;
-  final bool compact;
+
+  /// The term's source with a redundant leading "+" removed, so each
+  /// number appears once ("+45" → "45", "-20" and "3*4" stay as-is).
+  String get displayText {
+    final String s = term.source;
+    return s.startsWith('+') ? s.substring(1) : s;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme scheme = Theme.of(context).colorScheme;
-    final TextTheme textTheme = Theme.of(context).textTheme;
+    final Color bg = palette.groupBg(groupIndex);
+    final Color fg = palette.groupText(groupIndex);
 
-    return GestureDetector(
-      onTap: onTap,
-      onLongPressStart: onLongPressStart,
-      child: AnimatedContainer(
-        duration: AppConstants.animFast,
-        padding: EdgeInsets.all(compact ? 6 : 10),
-        decoration: BoxDecoration(
-          color: selected
-              ? scheme.primaryContainer.withOpacity(0.5)
-              : scheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? scheme.primary : Colors.transparent,
-            width: 1.5,
+    return Semantics(
+      button: true,
+      label: 'Entry ${NumberFormatter.format(term.value)}',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        onLongPressStart: onLongPressStart,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: CalcDims.chipHeight,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? bg.withAlpha(140) : bg,
+            borderRadius: BorderRadius.circular(CalcDims.chipRadius),
+            border: selected
+                ? Border.all(color: palette.groupSubtotal(groupIndex), width: 2)
+                : null,
           ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: <Widget>[
-            Text(
-              term.source,
-              style: textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          child: Text(
+            displayText,
+            style: TextStyle(
+              fontFamily: 'Outfit',
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: fg,
+              fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
             ),
-            SizedBox(height: compact ? 2 : 4),
-            Text(
-              NumberFormatter.format(term.value),
-              style: (compact ? textTheme.titleMedium : textTheme.titleLarge)
-                  ?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: scheme.onSurface,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ),
     );

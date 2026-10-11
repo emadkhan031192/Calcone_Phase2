@@ -1,14 +1,14 @@
-import 'package:calcone/features/basic/basic_calculator_screen.dart';
+import 'package:calcone/core/theme/calc_key.dart';
 import 'package:calcone/features/basic/widgets/peek_handle.dart';
 import 'package:calcone/features/quick_scan/widgets/scan_tile.dart';
-import 'package:calcone/widgets/calc_button.dart';
+import 'package:calcone/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Finder calcKey(String label) => find.byWidgetPredicate(
-      (Widget w) => w is CalcButton && w.label == label,
+      (Widget w) => w is CalcKey && w.label == label,
     );
 
 Future<void> tapKeys(WidgetTester tester, String keys) async {
@@ -26,8 +26,10 @@ Future<void> pumpApp(WidgetTester tester) async {
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
+    // The real app: widgets read the CalcPalette theme extension,
+    // which only the Calcone theme provides.
     const ProviderScope(
-      child: MaterialApp(home: BasicCalculatorScreen()),
+      child: CalcOneApp(),
     ),
   );
   await tester.pumpAndSettle();
@@ -52,7 +54,7 @@ void main() {
       // 3. Opens Quick Scan via the peek handle.
       await tester.tap(find.byType(PeekHandle));
       await tester.pumpAndSettle();
-      expect(find.text('QUICK SCAN'), findsOneWidget);
+      expect(find.text('TAPE'), findsOneWidget);
 
       // 4. All inputs visible in the grid.
       for (final String v in <String>['180', '650', '450', '320']) {
@@ -82,7 +84,8 @@ void main() {
       await tester.tap(find.byIcon(Icons.share_outlined));
       await tester.pumpAndSettle();
       expect(find.text('SHARE'), findsOneWidget);
-      expect(find.text('TOTAL: 3,640'), findsOneWidget);
+      // The branded card shows "= " in blue next to the big total.
+      expect(find.text('3,640'), findsWidgets);
     });
 
     testWidgets('session is offered for restore after a restart',

@@ -3,14 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../widgets/calc_button.dart';
+import '../../../core/theme/calc_key.dart';
 import '../calculator_controller.dart';
 
-/// The four-row digit grid plus the equals bar — the entirety of what's
-/// visible on the home screen (spec §4). A slim utility row
-/// (AC / C / ⌫ / parentheses) sits above it: necessary for the app to
-/// actually function, but kept small and muted so it doesn't compete with
-/// the grid.
+/// The keypad: 4 columns, 10dp gaps, 72dp tall keys.
+/// Row 1: AC, Delete (long-press clears all), %, ÷.
+/// Rows 2–4: digits + × − +. Row 5: ( ), 0, ., = (bottom-right).
 class Keypad extends ConsumerWidget {
   const Keypad({super.key});
 
@@ -19,123 +17,128 @@ class Keypad extends ConsumerWidget {
     final CalculatorController controller = ref.read(
       calculatorControllerProvider.notifier,
     );
-    final ColorScheme scheme = Theme.of(context).colorScheme;
 
-    final Color numberColor = AppTheme.numberKeyColor(scheme);
-    final Color operatorColor = AppTheme.operatorKeyColor(scheme);
-    final Color utilityColor = AppTheme.utilityKeyColor(scheme);
-    final Color equalsColor = AppTheme.equalsKeyColor(scheme);
+    Widget key({
+      String? label,
+      IconData? icon,
+      KeyKind kind = KeyKind.number,
+      String? semanticLabel,
+      required VoidCallback onTap,
+      VoidCallback? onLongPress,
+    }) =>
+        Expanded(
+          child: CalcKey(
+            label: label,
+            icon: icon,
+            kind: kind,
+            semanticLabel: semanticLabel,
+            onTap: onTap,
+            onLongPress: onLongPress,
+          ),
+        );
 
-    Widget numberKey(String digit) => CalcButton(
+    Widget numberKey(String digit) => key(
           label: digit,
-          backgroundColor: numberColor,
-          foregroundColor: scheme.onSurface,
           onTap: () => controller.inputDigit(digit),
         );
 
-    Widget operatorKey(String glyph, String internalOp) => CalcButton(
+    Widget operatorKey(String glyph, String internalOp) => key(
           label: glyph,
-          backgroundColor: operatorColor,
-          foregroundColor: scheme.onPrimaryContainer,
+          kind: KeyKind.op,
           onTap: () => controller.inputOperator(internalOp),
         );
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Row(
-          children: <Widget>[
-            CalcButton(
-              label: 'AC',
-              backgroundColor: utilityColor,
-              foregroundColor: scheme.error,
-              semanticLabel: 'All clear',
-              onTap: controller.clearAll,
-            ),
-            CalcButton(
-              label: 'C',
-              backgroundColor: utilityColor,
-              foregroundColor: scheme.onSurfaceVariant,
-              semanticLabel: 'Clear',
-              onTap: controller.clearCurrent,
-            ),
-            CalcButton(
-              label: '⌫',
-              backgroundColor: utilityColor,
-              foregroundColor: scheme.onSurfaceVariant,
-              semanticLabel: 'Backspace',
-              onTap: controller.backspace,
-            ),
-            CalcButton(
-              label: '( )',
-              backgroundColor: utilityColor,
-              foregroundColor: scheme.onSurfaceVariant,
-              semanticLabel: 'Parenthesis',
-              onTap: () => controller.inputSmartParen(),
-            ),
+    const Widget gap = SizedBox(width: CalcDims.keyGap);
+
+    List<Widget> row(List<Widget> keys) => <Widget>[
+          for (int i = 0; i < keys.length; i++) ...<Widget>[
+            if (i > 0) gap,
+            keys[i],
           ],
-        ),
-        Row(
-          children: <Widget>[
-            numberKey('7'),
-            numberKey('8'),
-            numberKey('9'),
-            operatorKey(AppConstants.glyphDivide, AppConstants.opDivide),
-          ],
-        ),
-        Row(
-          children: <Widget>[
-            numberKey('4'),
-            numberKey('5'),
-            numberKey('6'),
-            operatorKey(AppConstants.glyphMultiply, AppConstants.opMultiply),
-          ],
-        ),
-        Row(
-          children: <Widget>[
-            numberKey('1'),
-            numberKey('2'),
-            numberKey('3'),
-            operatorKey(AppConstants.glyphSubtract, AppConstants.opSubtract),
-          ],
-        ),
-        Row(
-          children: <Widget>[
-            numberKey('0'),
-            CalcButton(
-              label: AppConstants.glyphDecimal,
-              backgroundColor: numberColor,
-              foregroundColor: scheme.onSurface,
-              onTap: controller.inputDecimalPoint,
-            ),
-            CalcButton(
-              label: AppConstants.glyphPercent,
-              backgroundColor: numberColor,
-              foregroundColor: scheme.onSurface,
-              onTap: controller.inputPercent,
-            ),
-            operatorKey(AppConstants.glyphAdd, AppConstants.opAdd),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppConstants.spaceXs,
-            vertical: AppConstants.spaceXs,
+        ];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Row(
+            children: row(<Widget>[
+              key(
+                label: 'AC',
+                kind: KeyKind.clear,
+                semanticLabel: 'All clear',
+                onTap: controller.clearAll,
+              ),
+              key(
+                icon: Icons.backspace_outlined,
+                kind: KeyKind.clear,
+                semanticLabel: 'Delete, long-press to clear all',
+                onTap: controller.backspace,
+                onLongPress: controller.clearAll,
+              ),
+              key(
+                label: '%',
+                kind: KeyKind.function,
+                semanticLabel: 'Percent',
+                onTap: controller.inputPercent,
+              ),
+              operatorKey(AppConstants.glyphDivide, AppConstants.opDivide),
+            ]),
           ),
-          child: SizedBox(
-            width: double.infinity,
-            child: CalcButton(
-              label: AppConstants.glyphEquals,
-              backgroundColor: equalsColor,
-              foregroundColor: scheme.onPrimary,
-              semanticLabel: 'Equals',
-              expanded: false,
-              onTap: controller.evaluate,
-              onLongPress: controller.repeatLastOperation,
-            ),
+          const SizedBox(height: CalcDims.keyGap),
+          Row(
+            children: row(<Widget>[
+              numberKey('7'),
+              numberKey('8'),
+              numberKey('9'),
+              operatorKey(AppConstants.glyphMultiply, AppConstants.opMultiply),
+            ]),
           ),
-        ),
-      ],
+          const SizedBox(height: CalcDims.keyGap),
+          Row(
+            children: row(<Widget>[
+              numberKey('4'),
+              numberKey('5'),
+              numberKey('6'),
+              operatorKey(AppConstants.glyphSubtract, AppConstants.opSubtract),
+            ]),
+          ),
+          const SizedBox(height: CalcDims.keyGap),
+          Row(
+            children: row(<Widget>[
+              numberKey('1'),
+              numberKey('2'),
+              numberKey('3'),
+              operatorKey(AppConstants.glyphAdd, AppConstants.opAdd),
+            ]),
+          ),
+          const SizedBox(height: CalcDims.keyGap),
+          Row(
+            children: row(<Widget>[
+              key(
+                label: '()',
+                kind: KeyKind.function,
+                semanticLabel: 'Parenthesis',
+                onTap: () => controller.inputSmartParen(),
+              ),
+              numberKey('0'),
+              key(
+                label: AppConstants.glyphDecimal,
+                semanticLabel: 'Decimal point',
+                onTap: controller.inputDecimalPoint,
+              ),
+              key(
+                label: AppConstants.glyphEquals,
+                kind: KeyKind.equals,
+                semanticLabel: 'Equals, long-press to repeat',
+                onTap: controller.evaluate,
+                onLongPress: controller.repeatLastOperation,
+              ),
+            ]),
+          ),
+        ],
+      ),
     );
   }
 }

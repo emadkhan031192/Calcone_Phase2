@@ -25,6 +25,10 @@ dependencies:
   # Sharing (result cards, calculation/session text via the native sheet).
   share_plus: ^9.0.0
 
+  # Temporary file for the share-as-image PNG (XFile.fromData has no path,
+  # which the Android share sheet cannot handle).
+  path_provider: ^2.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -38,3 +42,9 @@ flutter:
     - assets/icons/
     - assets/images/
     - assets/formulas/
+    - assets/fonts/
+  fonts:
+    # Bundled Outfit (variable weight) — the app stays fully offline.
+    - family: Outfit
+      fonts:
+        - asset: assets/fonts/Outfit.ttf

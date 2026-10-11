@@ -1,26 +1,25 @@
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../core/theme/app_theme.dart';
 import 'share_card.dart';
 import 'share_payload.dart';
 
-/// Share sheet (spec §12–§14): a live preview of the clean calculation
-/// card plus Share-as-image / Share-as-text / Copy-as-text actions. The
-/// preview itself is the capture source, so what you see is what gets
-/// shared — no UI contamination from the keypad.
+/// Share sheet: a live preview of the branded calculation card plus
+/// Share-as-image / Share-as-text / Copy-as-text actions. The preview
+/// itself is the capture source, so what you see is what gets shared —
+/// no UI contamination from the keypad.
 Future<void> showShareSheet(BuildContext context, SharePayload payload) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    backgroundColor: Theme.of(context).colorScheme.surface,
-    shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-    ),
     builder: (BuildContext ctx) => _ShareSheetBody(payload: payload),
   );
 }
@@ -40,7 +39,7 @@ class _ShareSheetBodyState extends State<_ShareSheetBody> {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final CalcPalette p = Theme.of(context).extension<CalcPalette>()!;
 
     return SingleChildScrollView(
       child: Padding(
@@ -48,15 +47,6 @@ class _ShareSheetBodyState extends State<_ShareSheetBody> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: scheme.onSurfaceVariant.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
             Text(
               'SHARE',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -65,9 +55,11 @@ class _ShareSheetBodyState extends State<_ShareSheetBody> {
                   ),
             ),
             const SizedBox(height: 16),
-            RepaintBoundary(
-              key: _cardKey,
-              child: ShareCard(payload: widget.payload),
+            Center(
+              child: RepaintBoundary(
+                key: _cardKey,
+                child: ShareCard(payload: widget.payload),
+              ),
             ),
             const SizedBox(height: 20),
             if (_busy)
@@ -77,27 +69,31 @@ class _ShareSheetBodyState extends State<_ShareSheetBody> {
               ),
             Row(
               children: <Widget>[
+                // Image: blue gradient, wider than the tonal actions.
                 Expanded(
-                  child: _action(
-                    context,
+                  flex: 2,
+                  child: _GradientAction(
                     icon: Icons.image_outlined,
                     label: 'Image',
+                    palette: p,
                     onPressed: _busy ? null : () => _shareImage(context),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: _action(
-                    context,
+                  child: _TonalAction(
                     icon: Icons.share_outlined,
                     label: 'Text',
+                    palette: p,
                     onPressed: _busy ? null : () => _shareText(context),
                   ),
                 ),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: _action(
-                    context,
+                  child: _TonalAction(
                     icon: Icons.copy_outlined,
                     label: 'Copy',
+                    palette: p,
                     onPressed: _busy ? null : () => _copyText(context),
                   ),
                 ),
@@ -106,19 +102,6 @@ class _ShareSheetBodyState extends State<_ShareSheetBody> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _action(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback? onPressed,
-  }) {
-    return TextButton.icon(
-      icon: Icon(icon, size: 20),
-      label: Text(label),
-      onPressed: onPressed,
     );
   }
 
@@ -132,19 +115,27 @@ class _ShareSheetBodyState extends State<_ShareSheetBody> {
           await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) throw StateError('image capture failed');
       final Uint8List bytes = byteData.buffer.asUint8List();
+
+      // XFile.fromData carries no path, which the Android share sheet
+      // cannot resolve — write a real temp file instead.
+      final Directory dir = await getTemporaryDirectory();
+      final File file = File('${dir.path}/calcone_share.png');
+      await file.writeAsBytes(bytes, flush: true);
+
       await Share.shareXFiles(
-        <XFile>[
-          XFile.fromData(
-            bytes,
-            name: 'calcone.png',
-            mimeType: 'image/png',
-          ),
-        ],
+        <XFile>[XFile(file.path, mimeType: 'image/png')],
         text: widget.payload.text,
       );
     } catch (_) {
-      // Image capture can fail on some devices — fall back to text so
-      // sharing never dead-ends.
+      // Sharing never dead-ends: say so, then fall back to text.
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Image share failed — shared as text instead'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
       await Share.share(widget.payload.text, subject: 'Calcone');
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -161,6 +152,128 @@ class _ShareSheetBodyState extends State<_ShareSheetBody> {
       const SnackBar(
         content: Text('Copied to clipboard'),
         duration: Duration(seconds: 1),
+      ),
+    );
+  }
+}
+
+/// The primary Image action: blue gradient, white text, 56dp tall.
+class _GradientAction extends StatelessWidget {
+  const _GradientAction({
+    required this.icon,
+    required this.label,
+    required this.palette,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final CalcPalette palette;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Share as image',
+      excludeSemantics: true,
+      child: Opacity(
+        opacity: onPressed == null ? 0.5 : 1,
+        child: GestureDetector(
+          onTap: onPressed,
+          child: Container(
+            height: 56,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: <Color>[
+                  palette.equalsStart,
+                  palette.equalsEnd,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: <BoxShadow>[
+                BoxShadow(
+                  color: palette.equalsEnd.withAlpha(82),
+                  blurRadius: 22,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(icon, size: 22, color: palette.equalsText),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: palette.equalsText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tonal Text / Copy actions.
+class _TonalAction extends StatelessWidget {
+  const _TonalAction({
+    required this.icon,
+    required this.label,
+    required this.palette,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final CalcPalette palette;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label == 'Text' ? 'Share as text' : 'Copy as text',
+      excludeSemantics: true,
+      child: Opacity(
+        opacity: onPressed == null ? 0.5 : 1,
+        child: GestureDetector(
+          onTap: onPressed,
+          child: Container(
+            height: 56,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: palette.keyNumber,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(icon, size: 22, color: palette.topBarButtonIcon),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -1,29 +1,66 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// The small "there's more here" affordance beneath the result (spec §11).
-///
-/// Phase 1 renders it so the layout and visual language are final; the
-/// swipe-up-to-open-Quick-Scan gesture itself is a Phase 2 deliverable
-/// (spec §8–§10) and is intentionally not wired up yet. [onTap] is exposed
-/// now so Phase 2 only has to add behaviour, not plumbing.
-class PeekHandle extends StatelessWidget {
+import '../../../core/theme/app_theme.dart';
+import '../calculator_controller.dart';
+
+/// The centered "TAPE n" pill beneath the result: the affordance that
+/// opens the Tape sheet (tap or swipe up).
+class PeekHandle extends ConsumerWidget {
   const PeekHandle({super.key, this.onTap});
 
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final Color color =
-        Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.5);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final CalcPalette p = Theme.of(context).extension<CalcPalette>()!;
+    // Rebuilds with the calculator state; the count itself is derived.
+    ref.watch(calculatorControllerProvider);
+    final int count = ref
+            .read(calculatorControllerProvider.notifier)
+            .quickScanTerms
+            ?.length ??
+        0;
+
     return Semantics(
-      button: onTap != null,
-      label: 'Quick Scan handle',
-      child: InkWell(
+      button: true,
+      label: count == 0 ? 'Open Tape' : 'Open Tape, $count entries',
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Icon(Icons.keyboard_arrow_up_rounded, color: color, size: 20),
+        child: Container(
+          constraints: const BoxConstraints(
+            minWidth: 120,
+            minHeight: CalcDims.minTouchTarget,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+          decoration: BoxDecoration(
+            color: p.tapePillBg,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Text(
+                count == 0 ? 'TAPE' : 'TAPE $count',
+                style: TextStyle(
+                  fontFamily: 'Outfit',
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 2,
+                  color: p.tapePillText,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(
+                Icons.keyboard_arrow_up_rounded,
+                color: p.tapePillText,
+                size: 20,
+              ),
+            ],
+          ),
         ),
       ),
     );
