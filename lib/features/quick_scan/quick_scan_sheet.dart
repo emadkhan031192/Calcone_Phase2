@@ -205,8 +205,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                 GridView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate:
-                      const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 4,
                     mainAxisSpacing: CalcDims.keyGap,
                     crossAxisSpacing: CalcDims.keyGap,
