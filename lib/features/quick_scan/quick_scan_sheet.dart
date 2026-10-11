@@ -60,10 +60,13 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
-          child: Row(
-            children: <Widget>[
-              Text(
-                'TAPE',
+          child: SizedBox(
+            // Tight width so the Spacer pushes the buttons right.
+            width: double.infinity,
+            child: Row(
+              children: <Widget>[
+                Text(
+                  'TAPE',
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.5,
@@ -108,6 +111,7 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
               ),
             ],
           ),
+        ),
         ),
         Expanded(
           child: terms == null

@@ -67,37 +67,42 @@ class _ShareSheetBodyState extends State<_ShareSheetBody> {
                 padding: EdgeInsets.only(bottom: 12),
                 child: CircularProgressIndicator(),
               ),
-            Row(
-              children: <Widget>[
-                // Image: blue gradient, wider than the tonal actions.
-                Expanded(
-                  flex: 2,
-                  child: _GradientAction(
-                    icon: Icons.image_outlined,
-                    label: 'Image',
-                    palette: p,
-                    onPressed: _busy ? null : () => _shareImage(context),
+            SizedBox(
+              // Tight width so the flexed buttons distribute properly
+              // (Padding loosens constraints, collapsing flex).
+              width: double.infinity,
+              child: Row(
+                children: <Widget>[
+                  // Image: blue gradient, wider than the tonal actions.
+                  Expanded(
+                    flex: 2,
+                    child: _GradientAction(
+                      icon: Icons.image_outlined,
+                      label: 'Image',
+                      palette: p,
+                      onPressed: _busy ? null : () => _shareImage(context),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _TonalAction(
-                    icon: Icons.share_outlined,
-                    label: 'Text',
-                    palette: p,
-                    onPressed: _busy ? null : () => _shareText(context),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TonalAction(
+                      icon: Icons.share_outlined,
+                      label: 'Text',
+                      palette: p,
+                      onPressed: _busy ? null : () => _shareText(context),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _TonalAction(
-                    icon: Icons.copy_outlined,
-                    label: 'Copy',
-                    palette: p,
-                    onPressed: _busy ? null : () => _copyText(context),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TonalAction(
+                      icon: Icons.copy_outlined,
+                      label: 'Copy',
+                      palette: p,
+                      onPressed: _busy ? null : () => _copyText(context),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

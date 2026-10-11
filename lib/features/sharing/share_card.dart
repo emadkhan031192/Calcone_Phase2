@@ -106,36 +106,40 @@ class ShareCard extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      const CalconeLogo(
-                        squareSize: 18,
-                        textColor: _ink,
-                        accentColor: _blue,
-                      ),
-                      const Spacer(),
-                      if (payload.entryCount != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFD3E3FD),
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Text(
-                            '${payload.entryCount} ENTRIES',
-                            style: const TextStyle(
-                              fontFamily: 'Outfit',
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.5,
-                              color: _blue,
+                  SizedBox(
+                    // Tight width so the Spacer pushes the chip right.
+                    width: double.infinity,
+                    child: Row(
+                      children: <Widget>[
+                        const CalconeLogo(
+                          squareSize: 18,
+                          textColor: _ink,
+                          accentColor: _blue,
+                        ),
+                        const Spacer(),
+                        if (payload.entryCount != null)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFD3E3FD),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Text(
+                              '${payload.entryCount} ENTRIES',
+                              style: const TextStyle(
+                                fontFamily: 'Outfit',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.5,
+                                color: _blue,
+                              ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 22),
                   RichText(

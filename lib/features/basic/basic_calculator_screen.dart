@@ -78,10 +78,14 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
             // Slim top bar: logo + wordmark left, History and Theme right.
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
-              child: Row(
-                children: <Widget>[
-                  const Expanded(child: CalconeLogo()),
-                  _TopBarButton(
+              child: SizedBox(
+                // Tight width: Padding loosens constraints, collapsing
+                // the Spacer and leaving buttons bunched left.
+                width: double.infinity,
+                child: Row(
+                  children: <Widget>[
+                    const Expanded(child: CalconeLogo()),
+                    _TopBarButton(
                     icon: Icons.history_rounded,
                     tooltip: 'History',
                     semanticLabel: 'Open calculation history',
@@ -102,7 +106,8 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
                 ],
               ),
             ),
-            // The display takes all remaining space above the pill.
+          ),
+          // The display takes all remaining space above the pill.
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
