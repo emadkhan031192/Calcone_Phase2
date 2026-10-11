@@ -175,43 +175,42 @@ class ShareCard extends ConsumerWidget {
                   const Divider(color: Color(0xFFD3E3FD)),
                   const SizedBox(height: 18),
                   if (total != null)
-                    Row(
-                      // Tight (Column stretch) so the total can ellipsis
-                      // instead of overflowing on very long numbers.
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: <Widget>[
-                        if (totalPrefix.isNotEmpty)
-                          Text(
-                            '= ',
-                            style: TextStyle(
-                              fontFamily: 'Outfit',
-                              fontSize: rs(settings, 44),
-                              fontWeight: FontWeight.w600,
-                              color: _blue,
+                    // FittedBox shrinks the total to fit the card instead
+                    // of truncating ("8,30...") when there are many digits.
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          children: <TextSpan>[
+                            if (totalPrefix.isNotEmpty)
+                              TextSpan(
+                                text: '= ',
+                                style: TextStyle(
+                                  fontFamily: 'Outfit',
+                                  fontSize: rs(settings, 44),
+                                  fontWeight: FontWeight.w600,
+                                  color: _blue,
+                                ),
+                              ),
+                            TextSpan(
+                              text: totalValue,
+                              style: TextStyle(
+                                fontFamily: 'Outfit',
+                                fontSize:
+                                    rs(settings, CalcDims.shareResultFontSize),
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -3,
+                                height: 1.05,
+                                color: _ink,
+                                fontFeatures: const <FontFeature>[
+                                  FontFeature.tabularFigures(),
+                                ],
+                              ),
                             ),
-                          ),
-                        Flexible(
-                          child: Text(
-                            totalValue,
-                            style: TextStyle(
-                              fontFamily: 'Outfit',
-                              fontSize:
-                                  rs(settings, CalcDims.shareResultFontSize),
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: -3,
-                              height: 1.05,
-                              color: _ink,
-                              fontFeatures: const <FontFeature>[
-                                FontFeature.tabularFigures(),
-                              ],
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   const SizedBox(height: 22),
                   const Text(

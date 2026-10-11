@@ -68,10 +68,20 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
   static const String _kFontWeight = 'calcone_font_weight';
   static const String _kHaptics = 'calcone_haptics';
   static const String _kChipOps = 'calcone_chip_operators';
+  static const String _kPrefsVersion = 'calcone_prefs_version';
 
   Future<void> _load() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String? themeRaw = prefs.getString(_kTheme);
+    int fontSize = prefs.getInt(_kFontSize) ?? 0;
+    // v1: Small became the default font size. Existing installs hold
+    // the old Medium default (1) without ever choosing it — migrate
+    // them to Small once.
+    if ((prefs.getInt(_kPrefsVersion) ?? 0) < 1) {
+      fontSize = 0;
+      await prefs.setInt(_kFontSize, 0);
+      await prefs.setInt(_kPrefsVersion, 1);
+    }
     state = AppSettings(
       themeMode: themeRaw == null
           ? ThemeMode.system
@@ -80,7 +90,7 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
               orElse: () => ThemeMode.system,
             ),
       language: prefs.getString(_kLang) ?? 'en',
-      fontSize: prefs.getInt(_kFontSize) ?? 0,
+      fontSize: fontSize,
       fontWeight: prefs.getInt(_kFontWeight) ?? 2,
       haptics: prefs.getBool(_kHaptics) ?? true,
       showChipOperators: prefs.getBool(_kChipOps) ?? true,
