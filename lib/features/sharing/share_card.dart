@@ -105,41 +105,40 @@ class ShareCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                // Stretch: the Stack above loosens constraints, which
+                // collapses Spacers — tight children keep the layout.
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
-                  SizedBox(
-                    // Tight width so the Spacer pushes the chip right.
-                    width: double.infinity,
-                    child: Row(
-                      children: <Widget>[
-                        const CalconeLogo(
-                          squareSize: 18,
-                          textColor: _ink,
-                          accentColor: _blue,
-                        ),
-                        const Spacer(),
-                        if (payload.entryCount != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFD3E3FD),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Text(
-                              '${payload.entryCount} ENTRIES',
-                              style: const TextStyle(
-                                fontFamily: 'Outfit',
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.5,
-                                color: _blue,
-                              ),
+                  Row(
+                    children: <Widget>[
+                      const CalconeLogo(
+                        squareSize: 18,
+                        textColor: _ink,
+                        accentColor: _blue,
+                      ),
+                      const Spacer(),
+                      if (payload.entryCount != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFD3E3FD),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Text(
+                            '${payload.entryCount} ENTRIES',
+                            style: const TextStyle(
+                              fontFamily: 'Outfit',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.5,
+                              color: _blue,
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 22),
                   RichText(
@@ -155,7 +154,9 @@ class ShareCard extends StatelessWidget {
                   const SizedBox(height: 18),
                   if (total != null)
                     Row(
-                      mainAxisSize: MainAxisSize.min,
+                      // Tight (Column stretch) so the total can ellipsis
+                      // instead of overflowing on very long numbers.
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: <Widget>[
@@ -192,6 +193,7 @@ class ShareCard extends StatelessWidget {
                   const SizedBox(height: 22),
                   const Text(
                     'MADE WITH CALCONE',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Outfit',
                       fontSize: 11,
