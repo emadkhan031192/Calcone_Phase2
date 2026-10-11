@@ -352,9 +352,13 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
         color: p.keyNumber,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        children: <Widget>[
-          action('Edit', Icons.edit_outlined, () => _editTerm(terms, index)),
+      child: SizedBox(
+        // Tight width: Padding loosens constraints, and in a loose Row
+        // Expanded children size intrinsically instead of sharing space.
+        width: double.infinity,
+        child: Row(
+          children: <Widget>[
+            action('Edit', Icons.edit_outlined, () => _editTerm(terms, index)),
           action('Delete', Icons.delete_outline, () {
             setState(() => _selectedIndex = null);
             controller.deleteQuickScanTerm(index);
@@ -370,7 +374,8 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
               setState(() => _selectedIndex = null);
             }
           }),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -395,31 +400,42 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          Text(
-            'TOTAL',
-            style: TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2,
-              color: p.equalsText,
+      child: SizedBox(
+        // Tight width so spaceBetween distributes across the full card.
+        width: double.infinity,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Text(
+              'TOTAL',
+              style: TextStyle(
+                fontFamily: 'Outfit',
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2,
+                color: p.equalsText,
+              ),
             ),
-          ),
-          Text(
-            total == null ? '—' : NumberFormatter.format(total),
-            style: TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: CalcDims.tapeTotalFontSize,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -1,
-              color: p.equalsText,
-              fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+            Flexible(
+              child: Text(
+                total == null ? '—' : NumberFormatter.format(total),
+                style: TextStyle(
+                  fontFamily: 'Outfit',
+                  fontSize: CalcDims.tapeTotalFontSize,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -1,
+                  color: p.equalsText,
+                  fontFeatures: const <FontFeature>[
+                    FontFeature.tabularFigures()
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
