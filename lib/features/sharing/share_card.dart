@@ -21,7 +21,6 @@ class ShareCard extends StatelessWidget {
   static const Color _blue = Color(0xFF0B57D0);
 
   static final RegExp _tokenPattern = RegExp(r'[\d,\.]+%?|[+−×÷()%]');
-  static final RegExp _numberPattern = RegExp(r'^[\d,\.]+%?$');
   static const Set<String> _operators = <String>{'+', '−', '×', '÷'};
 
   List<TextSpan> _expressionSpans(String expr) {

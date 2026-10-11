@@ -202,13 +202,16 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                GridView.count(
-                  crossAxisCount: 4,
+                GridView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: CalcDims.keyGap,
-                  crossAxisSpacing: CalcDims.keyGap,
-                  mainAxisExtent: CalcDims.chipHeight,
+                  gridDelegate:
+                      const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: CalcDims.keyGap,
+                    crossAxisSpacing: CalcDims.keyGap,
+                    mainAxisExtent: CalcDims.chipHeight,
+                  ),
                   children: <Widget>[
                     for (int i = 0; i < group.length; i++)
                       _tile(context, terms, start + i, controller, g, p),
