@@ -57,7 +57,7 @@ class CalculationDisplay extends ConsumerWidget {
       fontFamily: 'Outfit',
       fontSize: 26,
       fontWeight: FontWeight.w500,
-      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+      fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
     );
 
     return <TextSpan>[
