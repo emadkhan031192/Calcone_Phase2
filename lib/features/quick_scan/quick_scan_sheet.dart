@@ -67,51 +67,51 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
               children: <Widget>[
                 Text(
                   'TAPE',
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              _CountChip(count: terms?.length ?? 0),
-              const Spacer(),
-              _HeaderButton(
-                icon: Icons.share_outlined,
-                tooltip: 'Share calculation',
-                background: p.tapePillBg,
-                foreground: p.tapePillText,
-                onPressed: terms == null
-                    ? null
-                    : () => showShareSheet(
-                          context,
-                          controller.calculationSharePayload(),
-                        ),
-              ),
-              const SizedBox(width: 8),
-              _HeaderButton(
-                icon: Icons.bookmark_border_rounded,
-                tooltip: 'Saved numbers',
-                background: p.keyNumber,
-                foreground: p.topBarButtonIcon,
-                onPressed: _showSavedNumbers,
-              ),
-              const SizedBox(width: 8),
-              _HeaderButton(
-                icon: Icons.delete_sweep_outlined,
-                tooltip: 'Clear tape',
-                background: p.keyClear,
-                foreground: p.keyClearText,
-                onPressed: terms == null
-                    ? null
-                    : () {
-                        setState(() => _selectedIndex = null);
-                        controller.clearAll();
-                        Navigator.of(context).pop();
-                      },
-              ),
-            ],
+                const SizedBox(width: 8),
+                _CountChip(count: terms?.length ?? 0),
+                const Spacer(),
+                _HeaderButton(
+                  icon: Icons.share_outlined,
+                  tooltip: 'Share calculation',
+                  background: p.tapePillBg,
+                  foreground: p.tapePillText,
+                  onPressed: terms == null
+                      ? null
+                      : () => showShareSheet(
+                            context,
+                            controller.calculationSharePayload(),
+                          ),
+                ),
+                const SizedBox(width: 8),
+                _HeaderButton(
+                  icon: Icons.bookmark_border_rounded,
+                  tooltip: 'Saved numbers',
+                  background: p.keyNumber,
+                  foreground: p.topBarButtonIcon,
+                  onPressed: _showSavedNumbers,
+                ),
+                const SizedBox(width: 8),
+                _HeaderButton(
+                  icon: Icons.delete_sweep_outlined,
+                  tooltip: 'Clear tape',
+                  background: p.keyClear,
+                  foreground: p.keyClearText,
+                  onPressed: terms == null
+                      ? null
+                      : () {
+                          setState(() => _selectedIndex = null);
+                          controller.clearAll();
+                          Navigator.of(context).pop();
+                        },
+                ),
+              ],
+            ),
           ),
-        ),
         ),
         Expanded(
           child: terms == null
@@ -363,21 +363,21 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
         child: Row(
           children: <Widget>[
             action('Edit', Icons.edit_outlined, () => _editTerm(terms, index)),
-          action('Delete', Icons.delete_outline, () {
-            setState(() => _selectedIndex = null);
-            controller.deleteQuickScanTerm(index);
-          }),
-          action('Copy', Icons.copy_outlined, () {
-            _copyText(NumberFormatter.format(terms[index].value), 'Copied');
-            setState(() => _selectedIndex = null);
-          }),
-          action('Save', Icons.bookmark_border_rounded, () async {
-            await controller.saveQuickScanTerm(index);
-            if (mounted) {
-              _copyText('', 'Saved');
+            action('Delete', Icons.delete_outline, () {
               setState(() => _selectedIndex = null);
-            }
-          }),
+              controller.deleteQuickScanTerm(index);
+            }),
+            action('Copy', Icons.copy_outlined, () {
+              _copyText(NumberFormatter.format(terms[index].value), 'Copied');
+              setState(() => _selectedIndex = null);
+            }),
+            action('Save', Icons.bookmark_border_rounded, () async {
+              await controller.saveQuickScanTerm(index);
+              if (mounted) {
+                _copyText('', 'Saved');
+                setState(() => _selectedIndex = null);
+              }
+            }),
           ],
         ),
       ),

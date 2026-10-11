@@ -86,28 +86,28 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
                   children: <Widget>[
                     const Expanded(child: CalconeLogo()),
                     _TopBarButton(
-                    icon: Icons.history_rounded,
-                    tooltip: 'History',
-                    semanticLabel: 'Open calculation history',
-                    palette: p,
-                    onPressed: () => showHistorySheet(context),
-                  ),
-                  const SizedBox(width: 8),
-                  _TopBarButton(
-                    icon: isDark
-                        ? Icons.light_mode_outlined
-                        : Icons.dark_mode_outlined,
-                    tooltip: 'Theme: ${themeModes.label}',
-                    semanticLabel:
-                        'Toggle theme, currently ${themeModes.label}',
-                    palette: p,
-                    onPressed: () => themeModes.cycle(),
-                  ),
-                ],
+                      icon: Icons.history_rounded,
+                      tooltip: 'History',
+                      semanticLabel: 'Open calculation history',
+                      palette: p,
+                      onPressed: () => showHistorySheet(context),
+                    ),
+                    const SizedBox(width: 8),
+                    _TopBarButton(
+                      icon: isDark
+                          ? Icons.light_mode_outlined
+                          : Icons.dark_mode_outlined,
+                      tooltip: 'Theme: ${themeModes.label}',
+                      semanticLabel:
+                          'Toggle theme, currently ${themeModes.label}',
+                      palette: p,
+                      onPressed: () => themeModes.cycle(),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          // The display takes all remaining space above the pill.
+            // The display takes all remaining space above the pill.
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
