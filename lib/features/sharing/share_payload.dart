@@ -8,6 +8,7 @@ class SharePayload {
     this.total,
     this.expression,
     this.entryCount,
+    this.displayTitle,
   });
 
   final String title;
@@ -21,9 +22,26 @@ class SharePayload {
   /// Number of tape entries (shows the "N ENTRIES" chip on the card).
   final int? entryCount;
 
+  /// Optional user-supplied title (e.g. "Karyana Khata") shown on the
+  /// card and as the first line of the text share.
+  final String? displayTitle;
+
+  SharePayload withTitle(String? title) => SharePayload(
+        title: this.title,
+        rows: rows,
+        total: total,
+        expression: expression,
+        entryCount: entryCount,
+        displayTitle:
+            title == null || title.trim().isEmpty ? null : title.trim(),
+      );
+
+  /// The title actually shown: the custom one when set.
+  String get effectiveTitle => displayTitle ?? title;
+
   String get text {
     final StringBuffer sb = StringBuffer()
-      ..writeln(title)
+      ..writeln(effectiveTitle)
       ..writeln();
     for (final String row in rows) {
       sb.writeln(row);

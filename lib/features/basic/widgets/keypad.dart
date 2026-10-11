@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_constants.dart';
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/calc_key.dart';
 import '../calculator_controller.dart';
@@ -10,10 +12,14 @@ import '../calculator_controller.dart';
 /// Row 1: AC, Delete (long-press clears all), %, ÷.
 /// Rows 2–4: digits + × − +. Row 5: ( ), 0, ., = (bottom-right).
 class Keypad extends ConsumerWidget {
-  const Keypad({super.key});
+  const Keypad({super.key, this.keyHeight});
+
+  /// Overrides the key height (used for landscape).
+  final double? keyHeight;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final AppStrings s = ref.watch(stringsProvider);
     final CalculatorController controller = ref.read(
       calculatorControllerProvider.notifier,
     );
@@ -28,6 +34,7 @@ class Keypad extends ConsumerWidget {
     }) =>
         Expanded(
           child: CalcKey(
+            height: keyHeight,
             label: label,
             icon: icon,
             kind: kind,
@@ -67,20 +74,20 @@ class Keypad extends ConsumerWidget {
               key(
                 label: 'AC',
                 kind: KeyKind.clear,
-                semanticLabel: 'All clear',
+                semanticLabel: s.allClear,
                 onTap: controller.clearAll,
               ),
               key(
                 icon: Icons.backspace_outlined,
                 kind: KeyKind.clear,
-                semanticLabel: 'Delete, long-press to clear all',
+                semanticLabel: s.deleteHint,
                 onTap: controller.backspace,
                 onLongPress: controller.clearAll,
               ),
               key(
                 label: '%',
                 kind: KeyKind.function,
-                semanticLabel: 'Percent',
+                semanticLabel: s.percent,
                 onTap: controller.inputPercent,
               ),
               operatorKey(AppConstants.glyphDivide, AppConstants.opDivide),
@@ -119,19 +126,19 @@ class Keypad extends ConsumerWidget {
               key(
                 label: '()',
                 kind: KeyKind.function,
-                semanticLabel: 'Parenthesis',
+                semanticLabel: s.parenthesis,
                 onTap: () => controller.inputSmartParen(),
               ),
               numberKey('0'),
               key(
                 label: AppConstants.glyphDecimal,
-                semanticLabel: 'Decimal point',
+                semanticLabel: s.decimalPoint,
                 onTap: controller.inputDecimalPoint,
               ),
               key(
                 label: AppConstants.glyphEquals,
                 kind: KeyKind.equals,
-                semanticLabel: 'Equals, long-press to repeat',
+                semanticLabel: s.equalsHint,
                 onTap: controller.evaluate,
                 onLongPress: controller.repeatLastOperation,
               ),
