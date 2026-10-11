@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../calculator_controller.dart';
 
@@ -14,6 +16,7 @@ class PeekHandle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final CalcPalette p = Theme.of(context).extension<CalcPalette>()!;
+    final AppStrings strings = ref.watch(stringsProvider);
     // Rebuilds with the calculator state; the count itself is derived.
     ref.watch(calculatorControllerProvider);
     final int count = ref
@@ -24,7 +27,7 @@ class PeekHandle extends ConsumerWidget {
 
     return Semantics(
       button: true,
-      label: count == 0 ? 'Open Tape' : 'Open Tape, $count entries',
+      label: count == 0 ? strings.openTape : strings.openTapeCount(count),
       excludeSemantics: true,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -44,7 +47,7 @@ class PeekHandle extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               Text(
-                count == 0 ? 'TAPE' : 'TAPE $count',
+                count == 0 ? strings.tape : '${strings.tape} $count',
                 style: TextStyle(
                   fontFamily: 'Outfit',
                   fontSize: 15,

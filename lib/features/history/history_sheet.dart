@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/l10n/app_strings.dart';
+import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/number_formatter.dart';
 import '../../models/calculation_entry.dart';
@@ -24,6 +26,7 @@ class _HistorySheetBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final CalcPalette p = Theme.of(context).extension<CalcPalette>()!;
     final TextTheme textTheme = Theme.of(context).textTheme;
+    final AppStrings strings = ref.watch(stringsProvider);
     final List<CalculationEntry> entries =
         ref.watch(calculatorControllerProvider).tape.reversed.toList();
 
@@ -39,7 +42,7 @@ class _HistorySheetBody extends ConsumerWidget {
             child: Row(
               children: <Widget>[
                 Text(
-                  'HISTORY',
+                  strings.history,
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
@@ -57,7 +60,7 @@ class _HistorySheetBody extends ConsumerWidget {
             child: entries.isEmpty
                 ? Center(
                     child: Text(
-                      'No calculations yet',
+                      strings.noCalculationsYet,
                       style: textTheme.bodyMedium?.copyWith(color: p.muted),
                     ),
                   )
@@ -90,7 +93,8 @@ class _HistoryRow extends ConsumerWidget {
 
     return Semantics(
       button: true,
-      label: 'Load calculation ${entry.displayExpression}',
+      label:
+          ref.watch(stringsProvider).loadCalculation(entry.displayExpression),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () {

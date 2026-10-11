@@ -35,7 +35,7 @@ class CalculatorUiState {
     required this.expression,
     required this.resultPreview,
     required this.tape,
-    this.errorMessage,
+    this.errorKey,
     this.justEvaluated = false,
     this.undoRequest,
   });
@@ -49,7 +49,7 @@ class CalculatorUiState {
   final String expression;
   final String resultPreview;
   final List<CalculationEntry> tape;
-  final String? errorMessage;
+  final String? errorKey;
   final bool justEvaluated;
   final UndoRequest? undoRequest;
 
@@ -57,7 +57,7 @@ class CalculatorUiState {
     String? expression,
     String? resultPreview,
     List<CalculationEntry>? tape,
-    String? errorMessage,
+    String? errorKey,
     bool clearError = false,
     bool? justEvaluated,
     UndoRequest? undoRequest,
@@ -67,7 +67,7 @@ class CalculatorUiState {
       expression: expression ?? this.expression,
       resultPreview: resultPreview ?? this.resultPreview,
       tape: tape ?? this.tape,
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      errorKey: clearError ? null : (errorKey ?? this.errorKey),
       justEvaluated: justEvaluated ?? this.justEvaluated,
       undoRequest: clearUndo ? null : (undoRequest ?? this.undoRequest),
     );
@@ -126,7 +126,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
       deleteQuickScanTerm(index);
       return;
     }
-    _mutateTerms('Edit undone', (List<ExpressionTerm> terms) {
+    _mutateTerms('editUndone', (List<ExpressionTerm> terms) {
       if (index < 0 || index >= terms.length) return _joinTerms(terms);
       return _rebuildTerm(terms, index, newText);
     });
@@ -134,7 +134,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
 
   /// Deletes one Quick Scan term and recalculates (spec §9).
   void deleteQuickScanTerm(int index) {
-    _mutateTerms('Entry deleted', (List<ExpressionTerm> terms) {
+    _mutateTerms('entryDeleted', (List<ExpressionTerm> terms) {
       if (index < 0 || index >= terms.length) return _joinTerms(terms);
       final List<ExpressionTerm> kept = <ExpressionTerm>[
         for (int i = 0; i < terms.length; i++)
@@ -231,7 +231,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
   }
 
   /// Whether the display is currently showing an error message.
-  bool get hasError => state.errorMessage != null;
+  bool get hasError => state.errorKey != null;
 
   /// The current display expression (for sharing).
   String get currentExpression => state.expression;
@@ -291,7 +291,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
       justEvaluated: false,
     );
     if (expr.isNotEmpty) {
-      _pushUndo('Input cleared', () => _engine.restoreExpression(expr));
+      _pushUndo('inputCleared', () => _engine.restoreExpression(expr));
     }
     _schedulePersist();
   }
@@ -308,7 +308,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
       justEvaluated: false,
     );
     if (expr.isNotEmpty || oldTape.isNotEmpty) {
-      _pushUndo('Cleared', () => _engine.restoreSession(oldTape, expr));
+      _pushUndo('cleared', () => _engine.restoreSession(oldTape, expr));
     }
     _schedulePersist();
   }
@@ -325,7 +325,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
       );
       _schedulePersist();
     } on CalculatorException catch (e) {
-      state = state.copyWith(errorMessage: e.message);
+      state = state.copyWith(errorKey: e.messageKey);
     }
   }
 
@@ -353,7 +353,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
     final List<CalculationEntry> oldTape = List.of(_engine.tape);
     final String expr = _engine.rawExpression;
     _engine.clearTape();
-    _pushUndo('Tape cleared', () => _engine.restoreSession(oldTape, expr));
+    _pushUndo('tapeCleared', () => _engine.restoreSession(oldTape, expr));
     _syncTape();
   }
 
@@ -390,7 +390,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
 
   /// Saves the currently displayed result (spec §27).
   Future<void> saveCurrentResult() {
-    if (state.errorMessage != null) return Future<void>.value();
+    if (state.errorKey != null) return Future<void>.value();
     return _sessions.saveNumber(state.resultPreview);
   }
 
@@ -401,7 +401,7 @@ class CalculatorController extends StateNotifier<CalculatorUiState> {
   /// null when it can't be explained safely — then the UI shows the
   /// result without steps, never invented ones.
   List<String>? explainResult() {
-    if (state.errorMessage != null) return null;
+    if (state.errorKey != null) return null;
     final String expr = _engine.justEvaluated
         ? _engine.lastEvaluatedExpression
         : _engine.rawExpression;

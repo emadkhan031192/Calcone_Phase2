@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/l10n/app_strings.dart';
+import '../../../core/settings/app_settings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../sharing/share_sheet.dart';
 import '../calculator_controller.dart';
 
-/// The top of the screen: the expression line (right-aligned,
-/// auto-scrolled to the end, faded on the left edge — operators in blue,
-/// the last number in full text color) above the large result.
+/// The top of the screen: the full expression (wrapped, right-aligned —
+/// never clipped; operators in blue, the last number in full text color,
+/// regular weight) above the large result.
 ///
 /// Gestures: tap the result to copy it, long-press for the contextual
 /// actions (Copy / Save / Show Steps), swipe left to copy and swipe right
@@ -20,12 +22,18 @@ class CalculationDisplay extends ConsumerWidget {
     super.key,
     required this.expression,
     required this.result,
-    this.errorMessage,
+    this.errorKey,
+    this.compact = false,
   });
 
   final String expression;
   final String result;
-  final String? errorMessage;
+
+  /// Key into [AppStrings.error], or null when there is no error.
+  final String? errorKey;
+
+  /// Smaller result for landscape.
+  final bool compact;
 
   static const Set<String> _operators = <String>{'+', '−', '×', '÷'};
   static final RegExp _tokenPattern = RegExp(r'[\d,\.]+%?|[+−×÷()%]');
@@ -35,6 +43,7 @@ class CalculationDisplay extends ConsumerWidget {
   /// the last number in full text color, earlier numbers muted.
   List<TextSpan> _expressionSpans(
     String expr,
+    TextStyle base,
     Color operatorColor,
     Color numberColor,
     Color lastNumberColor,
@@ -52,13 +61,6 @@ class CalculationDisplay extends ConsumerWidget {
         break;
       }
     }
-
-    const TextStyle base = TextStyle(
-      fontFamily: 'Outfit',
-      fontSize: 26,
-      fontWeight: FontWeight.w500,
-      fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
-    );
 
     return <TextSpan>[
       for (int i = 0; i < tokens.length; i++)
@@ -79,6 +81,10 @@ class CalculationDisplay extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
     final CalcPalette p = Theme.of(context).extension<CalcPalette>()!;
+    final AppStrings strings = ref.watch(stringsProvider);
+    final AppSettings settings = ref.watch(settingsProvider);
+    final String? errorMessage =
+        errorKey == null ? null : strings.error(errorKey!);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -87,29 +93,27 @@ class CalculationDisplay extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: <Widget>[
           if (expression.isNotEmpty)
-            ShaderMask(
-              // Fade the left edge so long expressions never clip digits.
-              shaderCallback: (Rect bounds) => const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: <Color>[Colors.transparent, Colors.black],
-                stops: <double>[0.0, 0.14],
-              ).createShader(bounds),
-              blendMode: BlendMode.dstIn,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                reverse: true,
-                child: RichText(
-                  text: TextSpan(
-                    children: _expressionSpans(
-                      expression,
-                      scheme.primary,
-                      p.muted,
-                      scheme.onSurface,
-                      p.muted,
-                    ),
+            // The whole calculation, wrapped above the result so the
+            // user always sees it — never faded or clipped.
+            RichText(
+              textAlign: TextAlign.right,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              text: TextSpan(
+                children: _expressionSpans(
+                  expression,
+                  TextStyle(
+                    fontFamily: 'Outfit',
+                    fontSize: rs(settings, 26),
+                    fontWeight: exprWeight(settings),
+                    fontFeatures: const <FontFeature>[
+                      FontFeature.tabularFigures()
+                    ],
                   ),
-                  maxLines: 1,
+                  scheme.primary,
+                  p.muted,
+                  scheme.onSurface,
+                  p.muted,
                 ),
               ),
             ),
@@ -117,11 +121,12 @@ class CalculationDisplay extends ConsumerWidget {
           Semantics(
             liveRegion: true,
             label: errorMessage != null
-                ? 'Error: $errorMessage'
-                : 'Result: $result',
+                ? '${strings.errorPrefix}$errorMessage'
+                : '${strings.resultPrefix}$result',
             child: _ResultArea(
               text: errorMessage ?? result,
               isError: errorMessage != null,
+              compact: compact,
               onTap: () => _copyResult(context, ref),
               onLongPress: () => _resultMenu(context, ref),
               onSwipeLeft: () => _copyResult(context, ref),
@@ -134,14 +139,15 @@ class CalculationDisplay extends ConsumerWidget {
   }
 
   void _copyResult(BuildContext context, WidgetRef ref) {
+    final AppStrings strings = ref.read(stringsProvider);
     final CalculatorController controller =
         ref.read(calculatorControllerProvider.notifier);
     if (controller.hasError) return;
     Clipboard.setData(ClipboardData(text: result));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Copied to clipboard'),
-        duration: Duration(seconds: 1),
+      SnackBar(
+        content: Text(strings.copiedClipboard),
+        duration: const Duration(seconds: 1),
       ),
     );
   }
@@ -157,6 +163,7 @@ class CalculationDisplay extends ConsumerWidget {
   }
 
   Future<void> _resultMenu(BuildContext context, WidgetRef ref) async {
+    final AppStrings strings = ref.read(stringsProvider);
     final CalculatorController controller =
         ref.read(calculatorControllerProvider.notifier);
     if (controller.hasError) return;
@@ -165,12 +172,11 @@ class CalculationDisplay extends ConsumerWidget {
       context: context,
       position: const RelativeRect.fromLTRB(100, 200, 100, 200),
       items: <PopupMenuEntry<String>>[
-        const PopupMenuItem<String>(value: 'copy', child: Text('Copy')),
-        const PopupMenuItem<String>(value: 'share', child: Text('Share')),
-        const PopupMenuItem<String>(value: 'save', child: Text('Save')),
+        PopupMenuItem<String>(value: 'copy', child: Text(strings.copy)),
+        PopupMenuItem<String>(value: 'share', child: Text(strings.share)),
+        PopupMenuItem<String>(value: 'save', child: Text(strings.save)),
         if (steps != null)
-          const PopupMenuItem<String>(
-              value: 'steps', child: Text('Show Steps')),
+          PopupMenuItem<String>(value: 'steps', child: Text(strings.showSteps)),
       ],
     );
     if (!context.mounted || choice == null) return;
@@ -183,22 +189,23 @@ class CalculationDisplay extends ConsumerWidget {
         await controller.saveCurrentResult();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Saved'),
-              duration: Duration(seconds: 1),
+            SnackBar(
+              content: Text(strings.saved),
+              duration: const Duration(seconds: 1),
             ),
           );
         }
       case 'steps':
-        if (steps != null) _showSteps(context, steps);
+        if (steps != null) _showSteps(context, steps, strings);
     }
   }
 
-  void _showSteps(BuildContext context, List<String> steps) {
+  void _showSteps(
+      BuildContext context, List<String> steps, AppStrings strings) {
     showDialog<void>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Steps'),
+        title: Text(strings.steps),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +220,7 @@ class CalculationDisplay extends ConsumerWidget {
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close'),
+            child: Text(strings.close),
           ),
         ],
       ),
@@ -221,10 +228,11 @@ class CalculationDisplay extends ConsumerWidget {
   }
 }
 
-class _ResultArea extends StatelessWidget {
+class _ResultArea extends ConsumerWidget {
   const _ResultArea({
     required this.text,
     required this.isError,
+    required this.compact,
     required this.onTap,
     required this.onLongPress,
     required this.onSwipeLeft,
@@ -233,14 +241,16 @@ class _ResultArea extends StatelessWidget {
 
   final String text;
   final bool isError;
+  final bool compact;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final VoidCallback onSwipeLeft;
   final VoidCallback onSwipeRight;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
+    final AppSettings settings = ref.watch(settingsProvider);
     final TextStyle style = isError
         ? TextStyle(
             fontFamily: 'Outfit',
@@ -248,15 +258,7 @@ class _ResultArea extends StatelessWidget {
             fontWeight: FontWeight.w500,
             color: scheme.error,
           )
-        : TextStyle(
-            fontFamily: 'Outfit',
-            fontSize: CalcDims.resultFontSize,
-            fontWeight: FontWeight.w500,
-            letterSpacing: -3,
-            height: 1.05,
-            color: scheme.onSurface,
-            fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
-          );
+        : _resultStyle(context, settings);
 
     // Shrinks for long numbers so nothing clips; animates on change.
     final Widget textWidget = AnimatedSwitcher(
@@ -322,6 +324,20 @@ class _ResultArea extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  TextStyle _resultStyle(BuildContext context, AppSettings settings) {
+    return TextStyle(
+      fontFamily: 'Outfit',
+      fontSize: compact
+          ? rs(settings, CalcDims.resultFontSize) * 0.62
+          : rs(settings, CalcDims.resultFontSize),
+      fontWeight: resultWeight(settings),
+      letterSpacing: -3,
+      height: 1.05,
+      color: Theme.of(context).colorScheme.onSurface,
+      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
     );
   }
 

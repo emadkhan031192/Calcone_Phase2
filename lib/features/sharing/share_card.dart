@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/settings/app_settings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/calcone_logo.dart';
 import 'share_payload.dart';
 
 /// The branded calculation card: white with soft blue/green/yellow/red
-/// radial glows, logo + wordmark, entries chip, the expression with blue
-/// operators, and the big result.
+/// radial glows, logo + wordmark, entries chip, an optional custom
+/// title, the expression with blue operators, and the big result.
 ///
 /// Always rendered light so the shared image looks the same on every
 /// device. The share sheet captures this exact widget, so what you see
 /// is what gets shared.
-class ShareCard extends StatelessWidget {
+class ShareCard extends ConsumerWidget {
   const ShareCard({super.key, required this.payload});
 
   final SharePayload payload;
@@ -23,17 +25,17 @@ class ShareCard extends StatelessWidget {
   static final RegExp _tokenPattern = RegExp(r'[\d,\.]+%?|[+−×÷()%]');
   static const Set<String> _operators = <String>{'+', '−', '×', '÷'};
 
-  List<TextSpan> _expressionSpans(String expr) {
+  List<TextSpan> _expressionSpans(String expr, double fontSize) {
     final List<String> tokens = _tokenPattern
         .allMatches(expr)
         .map((RegExpMatch m) => m.group(0)!)
         .toList();
-    const TextStyle base = TextStyle(
+    final TextStyle base = TextStyle(
       fontFamily: 'Outfit',
-      fontSize: 24,
+      fontSize: fontSize,
       fontWeight: FontWeight.w500,
       color: _ink,
-      fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
+      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
     );
     return <TextSpan>[
       for (final String t in tokens)
@@ -60,8 +62,9 @@ class ShareCard extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const CalcPalette p = CalcPalette.light;
+    final AppSettings settings = ref.watch(settingsProvider);
     final String? total = payload.total;
     String totalPrefix = '';
     String totalValue = total ?? '';
@@ -143,12 +146,28 @@ class ShareCard extends StatelessWidget {
                         ),
                     ],
                   ),
+                  if (payload.displayTitle != null) ...<Widget>[
+                    const SizedBox(height: 18),
+                    Text(
+                      payload.displayTitle!,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: rs(settings, 22),
+                        fontWeight: FontWeight.w700,
+                        color: _ink,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 22),
                   RichText(
                     textAlign: TextAlign.center,
                     text: TextSpan(
                       children: _expressionSpans(
                         payload.expression ?? payload.rows.join(' '),
+                        rs(settings, 24),
                       ),
                     ),
                   ),
@@ -164,11 +183,11 @@ class ShareCard extends StatelessWidget {
                       textBaseline: TextBaseline.alphabetic,
                       children: <Widget>[
                         if (totalPrefix.isNotEmpty)
-                          const Text(
+                          Text(
                             '= ',
                             style: TextStyle(
                               fontFamily: 'Outfit',
-                              fontSize: 44,
+                              fontSize: rs(settings, 44),
                               fontWeight: FontWeight.w600,
                               color: _blue,
                             ),
@@ -176,14 +195,15 @@ class ShareCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             totalValue,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'Outfit',
-                              fontSize: CalcDims.shareResultFontSize,
-                              fontWeight: FontWeight.w500,
+                              fontSize:
+                                  rs(settings, CalcDims.shareResultFontSize),
+                              fontWeight: FontWeight.w700,
                               letterSpacing: -3,
                               height: 1.05,
                               color: _ink,
-                              fontFeatures: <FontFeature>[
+                              fontFeatures: const <FontFeature>[
                                 FontFeature.tabularFigures(),
                               ],
                             ),
