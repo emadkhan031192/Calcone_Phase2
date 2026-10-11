@@ -21,7 +21,6 @@ class ShareCard extends StatelessWidget {
   static const Color _blue = Color(0xFF0B57D0);
 
   static final RegExp _tokenPattern = RegExp(r'[\d,\.]+%?|[+−×÷()%]');
-  static final RegExp _numberPattern = RegExp(r'^[\d,\.]+%?$');
   static const Set<String> _operators = <String>{'+', '−', '×', '÷'};
 
   List<TextSpan> _expressionSpans(String expr) {
@@ -62,7 +61,7 @@ class ShareCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final CalcPalette p = CalcPalette.light;
+    const CalcPalette p = CalcPalette.light;
     final String? total = payload.total;
     String totalPrefix = '';
     String totalValue = total ?? '';
@@ -106,15 +105,21 @@ class ShareCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                // Stretch: the Stack above loosens constraints, which
+                // collapses Spacers — tight children keep the layout.
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      const CalconeLogo(
-                        squareSize: 18,
-                        textColor: _ink,
-                        accentColor: _blue,
+                      // Tight width so the wordmark ellipsizes instead of
+                      // overflowing when the font runs wide.
+                      const Expanded(
+                        child: CalconeLogo(
+                          squareSize: 18,
+                          textColor: _ink,
+                          accentColor: _blue,
+                        ),
                       ),
-                      const Spacer(),
                       if (payload.entryCount != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -152,7 +157,9 @@ class ShareCard extends StatelessWidget {
                   const SizedBox(height: 18),
                   if (total != null)
                     Row(
-                      mainAxisSize: MainAxisSize.min,
+                      // Tight (Column stretch) so the total can ellipsis
+                      // instead of overflowing on very long numbers.
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: <Widget>[
@@ -189,6 +196,7 @@ class ShareCard extends StatelessWidget {
                   const SizedBox(height: 22),
                   const Text(
                     'MADE WITH CALCONE',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Outfit',
                       fontSize: 11,

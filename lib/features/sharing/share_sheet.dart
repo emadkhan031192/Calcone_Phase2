@@ -67,37 +67,42 @@ class _ShareSheetBodyState extends State<_ShareSheetBody> {
                 padding: EdgeInsets.only(bottom: 12),
                 child: CircularProgressIndicator(),
               ),
-            Row(
-              children: <Widget>[
-                // Image: blue gradient, wider than the tonal actions.
-                Expanded(
-                  flex: 2,
-                  child: _GradientAction(
-                    icon: Icons.image_outlined,
-                    label: 'Image',
-                    palette: p,
-                    onPressed: _busy ? null : () => _shareImage(context),
+            SizedBox(
+              // Tight width so the flexed buttons distribute properly
+              // (Padding loosens constraints, collapsing flex).
+              width: double.infinity,
+              child: Row(
+                children: <Widget>[
+                  // Image: blue gradient, wider than the tonal actions.
+                  Expanded(
+                    flex: 2,
+                    child: _GradientAction(
+                      icon: Icons.image_outlined,
+                      label: 'Image',
+                      palette: p,
+                      onPressed: _busy ? null : () => _shareImage(context),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _TonalAction(
-                    icon: Icons.share_outlined,
-                    label: 'Text',
-                    palette: p,
-                    onPressed: _busy ? null : () => _shareText(context),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TonalAction(
+                      icon: Icons.share_outlined,
+                      label: 'Text',
+                      palette: p,
+                      onPressed: _busy ? null : () => _shareText(context),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _TonalAction(
-                    icon: Icons.copy_outlined,
-                    label: 'Copy',
-                    palette: p,
-                    onPressed: _busy ? null : () => _copyText(context),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TonalAction(
+                      icon: Icons.copy_outlined,
+                      label: 'Copy',
+                      palette: p,
+                      onPressed: _busy ? null : () => _copyText(context),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -202,21 +207,30 @@ class _GradientAction extends StatelessWidget {
                 ),
               ],
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(icon, size: 22, color: palette.equalsText),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'Outfit',
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: palette.equalsText,
+            child: SizedBox(
+              // Tight width (clamped from the button's tight width) so
+              // the label can ellipsis instead of overflowing.
+              width: double.infinity,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(icon, size: 22, color: palette.equalsText),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: palette.equalsText,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -256,21 +270,30 @@ class _TonalAction extends StatelessWidget {
               color: palette.keyNumber,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(icon, size: 22, color: palette.topBarButtonIcon),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontFamily: 'Outfit',
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
+            child: SizedBox(
+              // Tight width (clamped from the button's tight width) so
+              // the label can ellipsis instead of overflowing.
+              width: double.infinity,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(icon, size: 22, color: palette.topBarButtonIcon),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontFamily: 'Outfit',
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

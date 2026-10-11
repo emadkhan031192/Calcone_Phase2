@@ -60,53 +60,57 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
       children: <Widget>[
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 12, 4),
-          child: Row(
-            children: <Widget>[
-              Text(
-                'TAPE',
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.5,
+          child: SizedBox(
+            // Tight width so the Spacer pushes the buttons right.
+            width: double.infinity,
+            child: Row(
+              children: <Widget>[
+                Text(
+                  'TAPE',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              _CountChip(count: terms?.length ?? 0),
-              const Spacer(),
-              _HeaderButton(
-                icon: Icons.share_outlined,
-                tooltip: 'Share calculation',
-                background: p.tapePillBg,
-                foreground: p.tapePillText,
-                onPressed: terms == null
-                    ? null
-                    : () => showShareSheet(
-                          context,
-                          controller.calculationSharePayload(),
-                        ),
-              ),
-              const SizedBox(width: 8),
-              _HeaderButton(
-                icon: Icons.bookmark_border_rounded,
-                tooltip: 'Saved numbers',
-                background: p.keyNumber,
-                foreground: p.topBarButtonIcon,
-                onPressed: _showSavedNumbers,
-              ),
-              const SizedBox(width: 8),
-              _HeaderButton(
-                icon: Icons.delete_sweep_outlined,
-                tooltip: 'Clear tape',
-                background: p.keyClear,
-                foreground: p.keyClearText,
-                onPressed: terms == null
-                    ? null
-                    : () {
-                        setState(() => _selectedIndex = null);
-                        controller.clearAll();
-                        Navigator.of(context).pop();
-                      },
-              ),
-            ],
+                const SizedBox(width: 8),
+                _CountChip(count: terms?.length ?? 0),
+                const Spacer(),
+                _HeaderButton(
+                  icon: Icons.share_outlined,
+                  tooltip: 'Share calculation',
+                  background: p.tapePillBg,
+                  foreground: p.tapePillText,
+                  onPressed: terms == null
+                      ? null
+                      : () => showShareSheet(
+                            context,
+                            controller.calculationSharePayload(),
+                          ),
+                ),
+                const SizedBox(width: 8),
+                _HeaderButton(
+                  icon: Icons.bookmark_border_rounded,
+                  tooltip: 'Saved numbers',
+                  background: p.keyNumber,
+                  foreground: p.topBarButtonIcon,
+                  onPressed: _showSavedNumbers,
+                ),
+                const SizedBox(width: 8),
+                _HeaderButton(
+                  icon: Icons.delete_sweep_outlined,
+                  tooltip: 'Clear tape',
+                  background: p.keyClear,
+                  foreground: p.keyClearText,
+                  onPressed: terms == null
+                      ? null
+                      : () {
+                          setState(() => _selectedIndex = null);
+                          controller.clearAll();
+                          Navigator.of(context).pop();
+                        },
+                ),
+              ],
+            ),
           ),
         ),
         Expanded(
@@ -202,13 +206,15 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                GridView.count(
-                  crossAxisCount: 4,
+                GridView(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: CalcDims.keyGap,
-                  crossAxisSpacing: CalcDims.keyGap,
-                  mainAxisExtent: CalcDims.chipHeight,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisSpacing: CalcDims.keyGap,
+                    crossAxisSpacing: CalcDims.keyGap,
+                    mainAxisExtent: CalcDims.chipHeight,
+                  ),
                   children: <Widget>[
                     for (int i = 0; i < group.length; i++)
                       _tile(context, terms, start + i, controller, g, p),
@@ -317,18 +323,27 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
     final int index = _selectedIndex!;
     final TextTheme textTheme = Theme.of(context).textTheme;
     Widget action(String label, IconData icon, VoidCallback onTap) {
-      return InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(icon, size: 18, color: p.topBarButtonIcon),
-              const SizedBox(width: 6),
-              Text(label, style: textTheme.labelSmall),
-            ],
+      return Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(icon, size: 18, color: p.topBarButtonIcon),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: textTheme.labelSmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -341,26 +356,30 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
         color: p.keyNumber,
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: <Widget>[
-          action('Edit', Icons.edit_outlined, () => _editTerm(terms, index)),
-          action('Delete', Icons.delete_outline, () {
-            setState(() => _selectedIndex = null);
-            controller.deleteQuickScanTerm(index);
-          }),
-          action('Copy', Icons.copy_outlined, () {
-            _copyText(NumberFormatter.format(terms[index].value), 'Copied');
-            setState(() => _selectedIndex = null);
-          }),
-          action('Save', Icons.bookmark_border_rounded, () async {
-            await controller.saveQuickScanTerm(index);
-            if (mounted) {
-              _copyText('', 'Saved');
+      child: SizedBox(
+        // Tight width: Padding loosens constraints, and in a loose Row
+        // Expanded children size intrinsically instead of sharing space.
+        width: double.infinity,
+        child: Row(
+          children: <Widget>[
+            action('Edit', Icons.edit_outlined, () => _editTerm(terms, index)),
+            action('Delete', Icons.delete_outline, () {
               setState(() => _selectedIndex = null);
-            }
-          }),
-        ],
+              controller.deleteQuickScanTerm(index);
+            }),
+            action('Copy', Icons.copy_outlined, () {
+              _copyText(NumberFormatter.format(terms[index].value), 'Copied');
+              setState(() => _selectedIndex = null);
+            }),
+            action('Save', Icons.bookmark_border_rounded, () async {
+              await controller.saveQuickScanTerm(index);
+              if (mounted) {
+                _copyText('', 'Saved');
+                setState(() => _selectedIndex = null);
+              }
+            }),
+          ],
+        ),
       ),
     );
   }
@@ -385,31 +404,42 @@ class _QuickScanSheetState extends ConsumerState<QuickScanSheet> {
           ),
         ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          Text(
-            'TOTAL',
-            style: TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 2,
-              color: p.equalsText,
+      child: SizedBox(
+        // Tight width so spaceBetween distributes across the full card.
+        width: double.infinity,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            Text(
+              'TOTAL',
+              style: TextStyle(
+                fontFamily: 'Outfit',
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 2,
+                color: p.equalsText,
+              ),
             ),
-          ),
-          Text(
-            total == null ? '—' : NumberFormatter.format(total),
-            style: TextStyle(
-              fontFamily: 'Outfit',
-              fontSize: CalcDims.tapeTotalFontSize,
-              fontWeight: FontWeight.w500,
-              letterSpacing: -1,
-              color: p.equalsText,
-              fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+            Flexible(
+              child: Text(
+                total == null ? '—' : NumberFormatter.format(total),
+                style: TextStyle(
+                  fontFamily: 'Outfit',
+                  fontSize: CalcDims.tapeTotalFontSize,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: -1,
+                  color: p.equalsText,
+                  fontFeatures: const <FontFeature>[
+                    FontFeature.tabularFigures()
+                  ],
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.right,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

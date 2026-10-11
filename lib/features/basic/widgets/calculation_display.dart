@@ -53,11 +53,11 @@ class CalculationDisplay extends ConsumerWidget {
       }
     }
 
-    final TextStyle base = TextStyle(
+    const TextStyle base = TextStyle(
       fontFamily: 'Outfit',
       fontSize: 26,
       fontWeight: FontWeight.w500,
-      fontFeatures: const <FontFeature>[FontFeature.tabularFigures()],
+      fontFeatures: <FontFeature>[FontFeature.tabularFigures()],
     );
 
     return <TextSpan>[

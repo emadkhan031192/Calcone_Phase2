@@ -78,29 +78,33 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
             // Slim top bar: logo + wordmark left, History and Theme right.
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
-              child: Row(
-                children: <Widget>[
-                  const CalconeLogo(),
-                  const Spacer(),
-                  _TopBarButton(
-                    icon: Icons.history_rounded,
-                    tooltip: 'History',
-                    semanticLabel: 'Open calculation history',
-                    palette: p,
-                    onPressed: () => showHistorySheet(context),
-                  ),
-                  const SizedBox(width: 8),
-                  _TopBarButton(
-                    icon: isDark
-                        ? Icons.light_mode_outlined
-                        : Icons.dark_mode_outlined,
-                    tooltip: 'Theme: ${themeModes.label}',
-                    semanticLabel:
-                        'Toggle theme, currently ${themeModes.label}',
-                    palette: p,
-                    onPressed: () => themeModes.cycle(),
-                  ),
-                ],
+              child: SizedBox(
+                // Tight width: Padding loosens constraints, collapsing
+                // the Spacer and leaving buttons bunched left.
+                width: double.infinity,
+                child: Row(
+                  children: <Widget>[
+                    const Expanded(child: CalconeLogo()),
+                    _TopBarButton(
+                      icon: Icons.history_rounded,
+                      tooltip: 'History',
+                      semanticLabel: 'Open calculation history',
+                      palette: p,
+                      onPressed: () => showHistorySheet(context),
+                    ),
+                    const SizedBox(width: 8),
+                    _TopBarButton(
+                      icon: isDark
+                          ? Icons.light_mode_outlined
+                          : Icons.dark_mode_outlined,
+                      tooltip: 'Theme: ${themeModes.label}',
+                      semanticLabel:
+                          'Toggle theme, currently ${themeModes.label}',
+                      palette: p,
+                      onPressed: () => themeModes.cycle(),
+                    ),
+                  ],
+                ),
               ),
             ),
             // The display takes all remaining space above the pill.

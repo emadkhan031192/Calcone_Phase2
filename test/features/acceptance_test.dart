@@ -74,7 +74,9 @@ void main() {
       await tester.tap(find.text('Edit'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '540');
-      await tester.tap(find.text('Save'));
+      // The selection bar behind the dialog also has a "Save" action —
+      // target the dialog's filled button.
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
 
       // 7. Total automatically updates.
