@@ -12,7 +12,6 @@ import '../sharing/share_sheet.dart';
 import 'calculator_controller.dart';
 import 'widgets/calculation_display.dart';
 import 'widgets/keypad.dart';
-import 'widgets/peek_handle.dart';
 import 'widgets/undo_snackbar.dart';
 
 /// The home screen: slim top bar (logo, language, settings, history,
@@ -96,57 +95,20 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
     );
   }
 
-  /// Slim top bar: logo left; EN/UR toggle, settings burger, history
-  /// and theme buttons right.
+  /// Slim top bar: logo left; settings, history and theme right.
   Widget _topBar(BuildContext context, WidgetRef ref) {
     final CalcPalette p = Theme.of(context).extension<CalcPalette>()!;
     final AppStrings s = ref.watch(stringsProvider);
-    final AppSettings settings = ref.watch(settingsProvider);
     final SettingsNotifier notifier = ref.read(settingsProvider.notifier);
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final bool isEn = settings.language == 'en';
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 8, 0),
+      padding: const EdgeInsets.fromLTRB(16, 2, 8, 0),
       child: SizedBox(
         width: double.infinity,
         child: Row(
           children: <Widget>[
-            const Expanded(child: CalconeLogo(squareSize: 18)),
-            // Compact EN/UR toggle.
-            Semantics(
-              button: true,
-              label: s.language,
-              excludeSemantics: true,
-              child: GestureDetector(
-                onTap: notifier.toggleLanguage,
-                child: Container(
-                  height: 40,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: p.topBarButtonBg,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      _LangLabel('EN', active: isEn, palette: p),
-                      Text(
-                        ' | ',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: p.muted,
-                          fontFamily: 'Outfit',
-                        ),
-                      ),
-                      _LangLabel('UR', active: !isEn, palette: p),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
+            const Expanded(child: CalconeLogo(squareSize: 16)),
             _TopBarButton(
               icon: Icons.menu_rounded,
               tooltip: s.settings,
@@ -181,21 +143,24 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
     final CalculatorUiState state = ref.watch(calculatorControllerProvider);
     return Column(
       children: <Widget>[
-        // The display takes all remaining space above the pill.
+        // The display takes all remaining space; swipe up anywhere on it
+        // opens the Tape sheet.
         Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              CalculationDisplay(
-                expression: state.expression,
-                result: state.resultPreview,
-                errorKey: state.errorKey,
-              ),
-            ],
+          child: _swipeUpToTape(
+            Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                CalculationDisplay(
+                  expression: state.expression,
+                  result: state.resultPreview,
+                  errorKey: state.errorKey,
+                ),
+              ],
+            ),
           ),
         ),
-        _tapePill(context, ref),
+        _tapeHint(context, ref),
         _shareStrip(context, ref),
         const SizedBox(height: 8),
         const Padding(
@@ -206,7 +171,7 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
     );
   }
 
-  /// Landscape: display + pills on the left, keypad on the right with
+  /// Landscape: display + hints on the left, keypad on the right with
   /// responsive key heights.
   Widget _landscapeBody(BuildContext context, WidgetRef ref) {
     final CalculatorUiState state = ref.watch(calculatorControllerProvider);
@@ -214,20 +179,22 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
       children: <Widget>[
         Expanded(
           flex: 5,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              CalculationDisplay(
-                expression: state.expression,
-                result: state.resultPreview,
-                errorKey: state.errorKey,
-                compact: true,
-              ),
-              _tapePill(context, ref),
-              _shareStrip(context, ref),
-              const SizedBox(height: 8),
-            ],
+          child: _swipeUpToTape(
+            Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                CalculationDisplay(
+                  expression: state.expression,
+                  result: state.resultPreview,
+                  errorKey: state.errorKey,
+                  compact: true,
+                ),
+                _tapeHint(context, ref),
+                _shareStrip(context, ref),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
         ),
         Expanded(
@@ -247,8 +214,9 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
     );
   }
 
-  /// Centered Tape pill — swipe up (or tap) opens the sheet.
-  Widget _tapePill(BuildContext context, WidgetRef ref) {
+  /// Swipe-up anywhere on the display opens the Tape sheet. The result
+  /// area's own horizontal swipes (copy/share) are unaffected.
+  Widget _swipeUpToTape(Widget child) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onVerticalDragEnd: (DragEndDetails details) {
@@ -256,8 +224,49 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
           showQuickScanSheet(context);
         }
       },
-      child: PeekHandle(
+      child: child,
+    );
+  }
+
+  /// Just a hint line where the pill was — tappable for discoverability.
+  Widget _tapeHint(BuildContext context, WidgetRef ref) {
+    final CalcPalette p = Theme.of(context).extension<CalcPalette>()!;
+    final AppStrings s = ref.watch(stringsProvider);
+    final int count = ref.watch(calculatorControllerProvider).tape.length;
+    final String text = count == 0
+        ? s.swipeUpForTape
+        : '${s.tape} $count · ${s.swipeUpForTape}';
+    return Semantics(
+      button: true,
+      label: count == 0 ? s.openTape : s.openTapeCount(count),
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () => showQuickScanSheet(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              Icon(
+                Icons.keyboard_arrow_up_rounded,
+                size: 16,
+                color: p.muted,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                text,
+                style: TextStyle(
+                  fontFamily: 'Outfit',
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: p.muted,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -304,28 +313,7 @@ class _BasicCalculatorScreenState extends ConsumerState<BasicCalculatorScreen> {
   }
 }
 
-class _LangLabel extends StatelessWidget {
-  const _LangLabel(this.text, {required this.active, required this.palette});
-
-  final String text;
-  final bool active;
-  final CalcPalette palette;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: TextStyle(
-        fontFamily: 'Outfit',
-        fontSize: 13,
-        fontWeight: active ? FontWeight.w700 : FontWeight.w500,
-        color: active ? palette.tapePillText : palette.muted,
-      ),
-    );
-  }
-}
-
-/// One 44dp tonal icon button for the top bar.
+/// One 42dp tonal icon button for the top bar.
 class _TopBarButton extends StatelessWidget {
   const _TopBarButton({
     required this.icon,
@@ -356,9 +344,9 @@ class _TopBarButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(14),
             onTap: onPressed,
             child: SizedBox(
-              width: 44,
-              height: 44,
-              child: Icon(icon, size: 22, color: palette.topBarButtonIcon),
+              width: 42,
+              height: 42,
+              child: Icon(icon, size: 21, color: palette.topBarButtonIcon),
             ),
           ),
         ),

@@ -168,6 +168,21 @@ class _ShareSheetBodyState extends ConsumerState<_ShareSheetBody> {
     }
   }
 
+  /// Captures the card. Some devices fail at 3x — retry lower before
+  /// giving up.
+  Future<ui.Image> _captureCard() async {
+    final RenderRepaintBoundary boundary =
+        _cardKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+    for (final double ratio in <double>[3, 2, 1]) {
+      try {
+        return await boundary.toImage(pixelRatio: ratio);
+      } catch (_) {
+        if (ratio == 1) rethrow;
+      }
+    }
+    throw StateError('image capture failed');
+  }
+
   Future<void> _shareImage(BuildContext context, AppStrings strings) async {
     final String? title = await _askTitle(strings);
     if (title == null || !mounted) return;
@@ -176,9 +191,7 @@ class _ShareSheetBodyState extends ConsumerState<_ShareSheetBody> {
       _busy = true;
     });
     try {
-      final RenderRepaintBoundary boundary =
-          _cardKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
-      final ui.Image image = await boundary.toImage(pixelRatio: 3);
+      final ui.Image image = await _captureCard();
       final ByteData? byteData =
           await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) throw StateError('image capture failed');
