@@ -5,8 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// App theme mode: follows the system by default, with a manual override
 /// from the top-bar toggle. Persisted on device.
 final themeModeProvider = StateNotifierProvider<ThemeModeNotifier, ThemeMode>(
-  (StateNotifierProviderRef<ThemeModeNotifier, ThemeMode> ref) =>
-      ThemeModeNotifier(),
+  (Ref ref) => ThemeModeNotifier(),
 );
 
 class ThemeModeNotifier extends StateNotifier<ThemeMode> {

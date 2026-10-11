@@ -61,7 +61,7 @@ class ShareCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final CalcPalette p = CalcPalette.light;
+    const CalcPalette p = CalcPalette.light;
     final String? total = payload.total;
     String totalPrefix = '';
     String totalValue = total ?? '';
