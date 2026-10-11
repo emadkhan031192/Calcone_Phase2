@@ -111,12 +111,15 @@ class ShareCard extends StatelessWidget {
                 children: <Widget>[
                   Row(
                     children: <Widget>[
-                      const CalconeLogo(
-                        squareSize: 18,
-                        textColor: _ink,
-                        accentColor: _blue,
+                      // Tight width so the wordmark ellipsizes instead of
+                      // overflowing when the font runs wide.
+                      const Expanded(
+                        child: CalconeLogo(
+                          squareSize: 18,
+                          textColor: _ink,
+                          accentColor: _blue,
+                        ),
                       ),
-                      const Spacer(),
                       if (payload.entryCount != null)
                         Container(
                           padding: const EdgeInsets.symmetric(
